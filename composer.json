@@ -1,0 +1,29 @@
+{
+  "name": "as247/wp-eloquent",
+  "description": "Eloquent for wordpress",
+  "keywords": ["php", "storage", "drive","google","google-drive"],
+  "homepage": "https://github.com/as247",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "As247",
+      "email": "as247@vui360.com",
+      "homepage": "http://as247.vui360.com"
+    }
+  ],
+  "require": {
+    "php": "^7.2",
+    "ext-json": "*",
+    "doctrine/inflector": "^1.1"
+  },
+  "autoload": {
+    "psr-4": {
+      "As247\\WpEloquent\\": "src/"
+    },
+    "files":[
+      "src/Support/helpers.php"
+    ]
+  },
+  "minimum-stability": "dev",
+  "prefer-stable": true
+}

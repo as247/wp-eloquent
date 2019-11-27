@@ -1,0 +1,28 @@
+<?php
+
+use As247\WpEloquent\Database\Migrations\Migration;
+use As247\WpEloquent\Database\Schema\Blueprint;
+use As247\WpEloquent\Support\Facades\Schema;
+
+class DummyClass extends Migration
+{
+    /**
+     * Run the migrations.
+     *
+     * @return void
+     */
+    public function up()
+    {
+        //
+    }
+
+    /**
+     * Reverse the migrations.
+     *
+     * @return void
+     */
+    public function down()
+    {
+        //
+    }
+}
