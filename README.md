@@ -1,6 +1,12 @@
-## As247\WpEloquent Database
+## Wp Eloquent Database
 
-The As247\WpEloquent Database component is a full database toolkit for PHP, providing an expressive query builder, ActiveRecord style ORM, and schema builder. It currently supports MySQL, Postgres, SQL Server, and SQLite. It also serves as the database layer of the Laravel PHP framework.
+> This package extract from laravel 6.x
+
+The WpEloquent Database component is a full database toolkit for PHP, providing an expressive query builder, ActiveRecord style ORM, and schema builder. It currently supports MySQL, Postgres, SQL Server, and SQLite. It also serves as the database layer of the Laravel PHP framework.
+
+### Installing
+
+```composer require as247/wp-eloquent```
 
 ### Usage Instructions
 
@@ -9,32 +15,7 @@ First, create a new "Capsule" manager instance. Capsule aims to make configuring
 ```PHP
 use As247\WpEloquent\Capsule\Manager as Capsule;
 
-$capsule = new Capsule;
-
-$capsule->addConnection([
-    'driver'    => 'mysql',
-    'host'      => 'localhost',
-    'database'  => 'database',
-    'username'  => 'root',
-    'password'  => 'password',
-    'charset'   => 'utf8',
-    'collation' => 'utf8_unicode_ci',
-    'prefix'    => '',
-]);
-
-// Set the event dispatcher used by Eloquent models... (optional)
-use As247\WpEloquent\Events\Dispatcher;
-use As247\WpEloquent\Container\Container;
-$capsule->setEventDispatcher(new Dispatcher(new Container));
-
-// Make this Capsule instance available globally via static methods... (optional)
-$capsule->setAsGlobal();
-
-// Setup the Eloquent ORM... (optional; unless you've used setEventDispatcher())
-$capsule->bootEloquent();
-```
-
-> `composer require "As247\WpEloquent/events"` required when you need to use observers with Eloquent.
+Capsule::bootWp();
 
 Once the Capsule instance has been registered. You may use it like so:
 
