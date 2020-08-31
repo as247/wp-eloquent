@@ -43,26 +43,7 @@ class WpConnection extends MySqlConnection
         parent::__construct($pdo, $database, $tablePrefix, $config);
         $this->db = $pdo;
     }
-    /**
-     * Run a select statement and return a single result.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     * @param  bool $useReadPdo
-     * @throws QueryException
-     *
-     * @return mixed
-     */
-    public function selectOne($query, $bindings = [], $useReadPdo = true)
-    {
-        $query = $this->bindParams($query, $bindings);
-        $error=$this->db->suppress_errors();
-        $result = $this->db->get_row($query);
-        $this->db->suppress_errors($error);
-        if ($result === false || $this->db->last_error)
-            throw new QueryException($query, $bindings, new Exception($this->db->last_error));
-        return $result;
-    }
+
     /**
      * Run a select statement against the database.
      *
@@ -75,13 +56,19 @@ class WpConnection extends MySqlConnection
      */
     public function select($query, $bindings = [], $useReadPdo = true)
     {
-        $query = $this->bindParams($query, $bindings);
-        $error=$this->db->suppress_errors();
-        $result = $this->db->get_results($query);
-        $this->db->suppress_errors($error);
-        if ($result === false || $this->db->last_error)
-            throw new QueryException($query, $bindings, new Exception($this->db->last_error));
-        return $result;
+        return $this->run($query, $bindings, function ($query, $bindings) use ($useReadPdo) {
+            if ($this->pretending()) {
+                return [];
+            }
+            $query = $this->bindParams($query, $bindings);
+            $error=$this->db->suppress_errors();
+            $result = $this->db->get_results($query);
+            $this->db->suppress_errors($error);
+            if ($result === false || $this->db->last_error)
+                throw new QueryException($query, $bindings, new Exception($this->db->last_error));
+            return $result;
+        });
+
     }
     /**
      * A hacky way to emulate bind parameters into SQL query
@@ -111,42 +98,6 @@ class WpConnection extends MySqlConnection
         return $query;
     }
     /**
-     * Run an insert statement against the database.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     *
-     * @return bool
-     */
-    public function insert($query, $bindings = array())
-    {
-        return $this->statement($query, $bindings);
-    }
-    /**
-     * Run an update statement against the database.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     *
-     * @return int
-     */
-    public function update($query, $bindings = array())
-    {
-        return $this->affectingStatement($query, $bindings);
-    }
-    /**
-     * Run a delete statement against the database.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     *
-     * @return int
-     */
-    public function delete($query, $bindings = array())
-    {
-        return $this->affectingStatement($query, $bindings);
-    }
-    /**
      * Execute an SQL statement and return the boolean result.
      *
      * @param  string $query
@@ -157,7 +108,7 @@ class WpConnection extends MySqlConnection
     public function statement($query, $bindings = array())
     {
         $new_query = $this->bindParams($query, $bindings);
-        return $this->unprepared($new_query);
+        return (bool)$this->unprepared($new_query);
     }
     /**
      * Run an SQL statement and get the number of rows affected.
@@ -170,12 +121,7 @@ class WpConnection extends MySqlConnection
     public function affectingStatement($query, $bindings = array())
     {
         $new_query = $this->bindParams($query, $bindings);
-        $error=$this->db->suppress_errors();
-        $result = $this->db->query($new_query);
-        $this->db->suppress_errors($error);
-        if ($result === false || $this->db->last_error)
-            throw new QueryException($new_query, $bindings, new Exception($this->db->last_error));
-        return intval($result);
+        return intval($this->unprepared($new_query));
     }
     /**
      * Run a raw, unprepared query against the PDO connection.
@@ -186,13 +132,19 @@ class WpConnection extends MySqlConnection
      */
     public function unprepared($query)
     {
-        $error=$this->db->suppress_errors();
-        $result = $this->db->query($query);
-        $this->db->suppress_errors($error);
-        if($result === false || $this->db->last_error){
-            throw new QueryException($query, [], new Exception($this->db->last_error));
-        }
-        return true;
+        return $this->run($query, [], function ($query) {
+            if ($this->pretending()) {
+                return true;
+            }
+            $error=$this->db->suppress_errors();
+            $result = $this->db->query($query);
+            $this->db->suppress_errors($error);
+            if($result === false || $this->db->last_error){
+                throw new QueryException($query, [], new Exception($this->db->last_error));
+            }
+            return $result;
+        });
+
     }
     /**
      * Prepare the query bindings for execution.
