@@ -193,15 +193,15 @@ class WpConnection extends MySqlConnection
                 // so we'll just ask the grammar for the format to get from the date.
                 $bindings[$key] = $value->format($grammar->getDateFormat());
             } elseif(is_object($value)){
-                if( method_exists($value,'__toString')) {
-                    $bindings[$key] = $value->__toString();
-                }elseif($value instanceof Serializable){
+                if($value instanceof Serializable){
                     $bindings[$key] = $value->serialize();
                 }elseif($value instanceof JsonSerializable){
                     $bindings[$key] = json_encode($value->jsonSerialize());
                 }else{
-                    throw new InvalidArgumentException("Could not convert ".get_class($value).' to scalar');
+                    $bindings[$key] = (string) $value;
                 }
+            }else{
+                $bindings[$key] = (string) $value;
             }
         }
         return $bindings;
