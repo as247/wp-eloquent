@@ -37,10 +37,11 @@ class WpConnection extends MySqlConnection
         return $instance;
     }
 
-    public function __construct($pdo, $database = '', $tablePrefix = '', array $config = [])
+    public function __construct($wpdb, $database = '', $tablePrefix = '', array $config = [])
     {
+        $this->db = $wpdb;
+        $pdo=new WpPdo($wpdb);
         parent::__construct($pdo, $database, $tablePrefix, $config);
-        $this->db = $pdo;
     }
 
     /**
@@ -206,24 +207,4 @@ class WpConnection extends MySqlConnection
         }
         return $bindings;
     }
-    /**
-     * Return self as PDO
-     *
-     */
-    public function getPdo()
-    {
-        return $this;
-    }
-    /**
-     * Return the last insert id
-     *
-     * @param  string $args
-     *
-     * @return int
-     */
-    public function lastInsertId($args)
-    {
-        return $this->db->insert_id;
-    }
-
 }
