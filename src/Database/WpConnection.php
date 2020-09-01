@@ -45,6 +45,14 @@ class WpConnection extends MySqlConnection
     }
 
     /**
+     * Get wpdb object
+     * @return wpdb
+     */
+    function getWpdb(){
+        return $this->db;
+    }
+
+    /**
      * Run a select statement against the database.
      *
      * @param  string $query

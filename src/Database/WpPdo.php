@@ -123,7 +123,7 @@ class WpPdo extends PDO
      * </code>
      */
     public function exec ($statement) {
-        return $this->db->query($statement);
+        return $this->db->unprepared($statement);
     }
 
     /**
@@ -151,6 +151,6 @@ class WpPdo extends PDO
      */
     public function lastInsertId($name=null)
     {
-        return $this->db->insert_id;
+        return $this->db->getWpdb()->insert_id;
     }
 }
