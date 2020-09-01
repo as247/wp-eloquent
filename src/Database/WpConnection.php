@@ -119,7 +119,7 @@ class WpConnection extends MySqlConnection
     public function affectingStatement($query, $bindings = array())
     {
         $new_query = $this->bindParams($query, $bindings);
-        return intval($this->runRawQuery($new_query));
+        return $this->runRawQuery($new_query);
     }
     /**
      * Run a raw, unprepared query against the PDO connection.
@@ -130,16 +130,17 @@ class WpConnection extends MySqlConnection
      */
     public function unprepared($query)
     {
-        return (bool)$this->runRawQuery($query);
+        return $this->runRawQuery($query,true);
     }
 
     /**
      * Run raw sql query
      * @param $query
+     * @param bool $returnBoolean
      * @return mixed
      */
-    protected function runRawQuery($query){
-        return $this->run($query, [], function ($query) {
+    protected function runRawQuery($query, $returnBoolean=false){
+        return $this->run($query, [], function ($query) use($returnBoolean) {
             if ($this->pretending()) {
                 return true;
             }
@@ -149,7 +150,10 @@ class WpConnection extends MySqlConnection
             if($this->db->last_error){
                 throw new QueryException($query, [], new Exception($this->db->last_error));
             }
-            return $result;
+            if($returnBoolean){
+                true;
+            }
+            return intval($result);
         });
     }
 

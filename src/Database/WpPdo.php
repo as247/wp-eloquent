@@ -52,7 +52,9 @@ class WpPdo extends PDO
         if($this->in_transaction){
             throw new PDOException("Failed to start transaction. Transaction is already started.");
         }
-        return $this->db->unprepared('START TRANSACTION');
+        $result= $this->db->unprepared('START TRANSACTION');
+        $this->in_transaction=true;
+        return $result;
     }
 
     /**
@@ -66,6 +68,7 @@ class WpPdo extends PDO
         if(!$this->in_transaction){
             throw new PDOException("There is no active transaction to commit");
         }
+        $this->in_transaction=false;
         return $this->db->unprepared('COMMIT');
     }
 
@@ -80,6 +83,7 @@ class WpPdo extends PDO
         if(!$this->in_transaction){
             throw new PDOException("There is no active transaction to rollback");
         }
+        $this->in_transaction=false;
         return $this->db->unprepared('ROLLBACK');
     }
 
