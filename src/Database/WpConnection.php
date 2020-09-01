@@ -1,6 +1,7 @@
 <?php
 
-namespace As247\WpEloquent\Capsule;
+
+namespace As247\WpEloquent\Database;
 
 use DateTime;
 use Exception;
@@ -8,8 +9,6 @@ use InvalidArgumentException;
 use JsonSerializable;
 use Serializable;
 use wpdb;
-use As247\WpEloquent\Database\MySqlConnection;
-use As247\WpEloquent\Database\QueryException;
 
 class WpConnection extends MySqlConnection
 {
@@ -64,12 +63,87 @@ class WpConnection extends MySqlConnection
             $error=$this->db->suppress_errors();
             $result = $this->db->get_results($query);
             $this->db->suppress_errors($error);
-            if ($result === false || $this->db->last_error)
+            if ($this->db->last_error)
                 throw new QueryException($query, $bindings, new Exception($this->db->last_error));
             return $result;
         });
 
     }
+    /**
+     * Run a select statement against the database and returns a generator.
+     *
+     * @param  string  $query
+     * @param  array  $bindings
+     * @param  bool  $useReadPdo
+     * @return \Generator
+     */
+    public function cursor($query, $bindings = [], $useReadPdo = true)
+    {
+        $result=$this->select($query,$bindings,$useReadPdo);
+        foreach ($result as $row){
+            yield $row;
+        }
+    }
+
+
+    /**
+     * Execute an SQL statement and return the boolean result.
+     *
+     * @param  string $query
+     * @param  array $bindings
+     *
+     * @return bool
+     */
+    public function statement($query, $bindings = array())
+    {
+        $new_query = $this->bindParams($query, $bindings);
+        return $this->unprepared($new_query);
+    }
+    /**
+     * Run an SQL statement and get the number of rows affected.
+     *
+     * @param  string $query
+     * @param  array $bindings
+     *
+     * @return int
+     */
+    public function affectingStatement($query, $bindings = array())
+    {
+        $new_query = $this->bindParams($query, $bindings);
+        return intval($this->runRawQuery($new_query));
+    }
+    /**
+     * Run a raw, unprepared query against the PDO connection.
+     *
+     * @param  string $query
+     *
+     * @return bool
+     */
+    public function unprepared($query)
+    {
+        return (bool)$this->runRawQuery($query);
+    }
+
+    /**
+     * Run raw sql query
+     * @param $query
+     * @return mixed
+     */
+    protected function runRawQuery($query){
+        return $this->run($query, [], function ($query) {
+            if ($this->pretending()) {
+                return true;
+            }
+            $error=$this->db->suppress_errors();
+            $result = $this->db->query($query);
+            $this->db->suppress_errors($error);
+            if($this->db->last_error){
+                throw new QueryException($query, [], new Exception($this->db->last_error));
+            }
+            return $result;
+        });
+    }
+
     /**
      * A hacky way to emulate bind parameters into SQL query
      *
@@ -96,55 +170,6 @@ class WpConnection extends MySqlConnection
         $query = str_replace(array('%', '?'), array('%%', '%s'), $query);
         $query = vsprintf($query, $bindings);
         return $query;
-    }
-    /**
-     * Execute an SQL statement and return the boolean result.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     *
-     * @return bool
-     */
-    public function statement($query, $bindings = array())
-    {
-        $new_query = $this->bindParams($query, $bindings);
-        return (bool)$this->unprepared($new_query);
-    }
-    /**
-     * Run an SQL statement and get the number of rows affected.
-     *
-     * @param  string $query
-     * @param  array $bindings
-     *
-     * @return int
-     */
-    public function affectingStatement($query, $bindings = array())
-    {
-        $new_query = $this->bindParams($query, $bindings);
-        return intval($this->unprepared($new_query));
-    }
-    /**
-     * Run a raw, unprepared query against the PDO connection.
-     *
-     * @param  string $query
-     *
-     * @return bool
-     */
-    public function unprepared($query)
-    {
-        return $this->run($query, [], function ($query) {
-            if ($this->pretending()) {
-                return true;
-            }
-            $error=$this->db->suppress_errors();
-            $result = $this->db->query($query);
-            $this->db->suppress_errors($error);
-            if($result === false || $this->db->last_error){
-                throw new QueryException($query, [], new Exception($this->db->last_error));
-            }
-            return $result;
-        });
-
     }
     /**
      * Prepare the query bindings for execution.

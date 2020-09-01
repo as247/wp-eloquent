@@ -5,6 +5,7 @@ namespace As247\WpEloquent\Capsule;
 use As247\WpEloquent\Database\Capsule\Manager as CapsuleManager;
 use As247\WpEloquent\Events\Dispatcher;
 use As247\WpEloquent\Container\Container;
+use As247\WpEloquent\Database\WpConnection;
 class Manager extends CapsuleManager{
 	protected static $booted;
 	public static function bootWp($useWpConnection=true){
@@ -37,6 +38,7 @@ class Manager extends CapsuleManager{
 				'prefix'    => $wpdb->base_prefix,
 			]);
 		}
+		$capsule->getContainer()->bind('db',$capsule->getDatabaseManager());
 		$capsule->setEventDispatcher(new Dispatcher(new Container));
 		$capsule->setAsGlobal();
 		$capsule->bootEloquent();

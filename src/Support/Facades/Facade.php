@@ -1,7 +1,7 @@
 <?php
 
 namespace As247\WpEloquent\Support\Facades;
-
+use As247\WpEloquent\Contracts\Container\Container as ContainerContract;
 use Closure;
 use Mockery;
 use Mockery\MockInterface;
@@ -12,7 +12,7 @@ abstract class Facade
     /**
      * The application instance being facaded.
      *
-     * @var \As247\WpEloquent\Contracts\Foundation\Application
+     * @var ContainerContract
      */
     protected static $app;
 
@@ -201,7 +201,7 @@ abstract class Facade
     /**
      * Get the application instance behind the facade.
      *
-     * @return \As247\WpEloquent\Contracts\Foundation\Application
+     * @return ContainerContract
      */
     public static function getFacadeApplication()
     {
@@ -211,7 +211,7 @@ abstract class Facade
     /**
      * Set the application instance.
      *
-     * @param  \As247\WpEloquent\Contracts\Foundation\Application  $app
+     * @param  ContainerContract  $app
      * @return void
      */
     public static function setFacadeApplication($app)

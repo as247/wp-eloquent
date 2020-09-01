@@ -16,7 +16,7 @@ First, create a new "Capsule" manager instance. Capsule aims to make configuring
 use As247\WpEloquent\Capsule\Manager as Capsule;
 
 Capsule::bootWp();
-
+```
 Once the Capsule instance has been registered. You may use it like so:
 
 **Using The Query Builder**
