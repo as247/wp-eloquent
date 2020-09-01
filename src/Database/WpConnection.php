@@ -40,7 +40,7 @@ class WpConnection extends MySqlConnection
     public function __construct($wpdb, $database = '', $tablePrefix = '', array $config = [])
     {
         $this->db = $wpdb;
-        $pdo=new WpPdo($wpdb);
+        $pdo=new WpPdo($this);
         parent::__construct($pdo, $database, $tablePrefix, $config);
     }
 

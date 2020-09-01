@@ -5,13 +5,12 @@ namespace As247\WpEloquent\Database;
 
 
 use PDO;
-use wpdb;
 use PDOException;
 
 class WpPdo extends PDO
 {
     /**
-     * @var wpdb
+     * @var WpConnection
      */
     protected $db;
     protected $in_transaction;
@@ -53,14 +52,7 @@ class WpPdo extends PDO
         if($this->in_transaction){
             throw new PDOException("Failed to start transaction. Transaction is already started.");
         }
-        $this->in_transaction=true;
-        $error=$this->db->suppress_errors();
-        $this->db->query('START TRANSACTION');
-        $this->db->suppress_errors($error);
-        if($this->db->last_error){
-            return false;
-        }
-        return true;
+        return $this->db->unprepared('START TRANSACTION');
     }
 
     /**
@@ -74,14 +66,7 @@ class WpPdo extends PDO
         if(!$this->in_transaction){
             throw new PDOException("There is no active transaction to commit");
         }
-        $this->in_transaction=false;
-        $error=$this->db->suppress_errors();
-        $this->db->query('COMMIT');
-        $this->db->suppress_errors($error);
-        if($this->db->last_error){
-            return false;
-        }
-        return true;
+        return $this->db->unprepared('COMMIT');
     }
 
     /**
@@ -95,14 +80,7 @@ class WpPdo extends PDO
         if(!$this->in_transaction){
             throw new PDOException("There is no active transaction to rollback");
         }
-        $this->in_transaction=false;
-        $error=$this->db->suppress_errors();
-        $this->db->query('ROLLBACK');
-        $this->db->suppress_errors($error);
-        if($this->db->last_error){
-            return false;
-        }
-        return true;
+        return $this->db->unprepared('ROLLBACK');
     }
 
     /**
