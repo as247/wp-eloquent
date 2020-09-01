@@ -52,9 +52,8 @@ class WpPdo extends PDO
         if($this->in_transaction){
             throw new PDOException("Failed to start transaction. Transaction is already started.");
         }
-        $result= $this->db->unprepared('START TRANSACTION');
         $this->in_transaction=true;
-        return $result;
+        return $this->db->unprepared('START TRANSACTION');
     }
 
     /**
