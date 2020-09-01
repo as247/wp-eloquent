@@ -41,7 +41,7 @@ class Manager extends CapsuleManager{
 			]);
 		}
 		$app=$capsule->getContainer();
-		$app->bind('db',$capsule->getDatabaseManager());
+		$app->instance('db',$capsule->getDatabaseManager());
 		Facade::setFacadeApplication($app);
 		$capsule->setEventDispatcher(new Dispatcher(new Container));
 		$capsule->setAsGlobal();

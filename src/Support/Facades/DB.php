@@ -26,6 +26,8 @@ namespace As247\WpEloquent\Support\Facades;
  * @method static int transactionLevel()
  * @method static array pretend(\Closure $callback)
  * @method static void listen(\Closure $callback)
+ * @method static void enableQueryLog()
+ * @method static array getQueryLog()
  *
  * @see \As247\WpEloquent\Database\DatabaseManager
  * @see \As247\WpEloquent\Database\Connection
