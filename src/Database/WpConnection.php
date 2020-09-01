@@ -5,7 +5,6 @@ namespace As247\WpEloquent\Database;
 
 use DateTime;
 use Exception;
-use InvalidArgumentException;
 use JsonSerializable;
 use Serializable;
 use wpdb;
