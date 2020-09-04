@@ -14,8 +14,14 @@
   "require": {
     "php": "^7.2",
     "ext-json": "*",
-    "doctrine/inflector": "^1.1",
-    "ext-pdo": "*"
+    "ext-pdo": "*",
+    "ext-mbstring": "*",
+    "doctrine/dbal": "^2.6"
+  },
+  "suggest": {
+    "doctrine/dbal": "Required to rename columns and drop SQLite columns (^2.6).",
+    "fzaninotto/faker": "Required to use the eloquent factory builder (^1.9.1).",
+    "symfony/finder": "Required to use Eloquent model factories (^4.3.4)."
   },
   "autoload": {
     "psr-4": {

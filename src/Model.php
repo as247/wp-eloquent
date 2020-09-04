@@ -3,7 +3,7 @@
 
 namespace As247\WpEloquent;
 
-class Model extends Database\Eloquent\Model
+abstract class Model extends Database\Eloquent\Model
 {
 
 }

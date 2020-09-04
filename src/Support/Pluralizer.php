@@ -2,7 +2,8 @@
 
 namespace As247\WpEloquent\Support;
 
-use Doctrine\Common\Inflector\Inflector;
+use As247\WpEloquent\Doctrine\Inflector\Inflector;
+use As247\WpEloquent\Doctrine\Inflector\InflectorFactory;
 
 class Pluralizer
 {
@@ -61,7 +62,7 @@ class Pluralizer
      * Get the plural form of an English word.
      *
      * @param  string  $value
-     * @param  int     $count
+     * @param  int  $count
      * @return string
      */
     public static function plural($value, $count = 2)
@@ -70,7 +71,7 @@ class Pluralizer
             return $value;
         }
 
-        $plural = Inflector::pluralize($value);
+        $plural = static::inflector()->pluralize($value);
 
         return static::matchCase($plural, $value);
     }
@@ -83,7 +84,7 @@ class Pluralizer
      */
     public static function singular($value)
     {
-        $singular = Inflector::singularize($value);
+        $singular = static::inflector()->singularize($value);
 
         return static::matchCase($singular, $value);
     }
@@ -117,5 +118,20 @@ class Pluralizer
         }
 
         return $value;
+    }
+
+    /**
+     * Get the inflector instance.
+     * @return Inflector
+     */
+    public static function inflector()
+    {
+        static $inflector;
+
+        if (is_null($inflector)) {
+            $inflector = InflectorFactory::create()->build();
+        }
+
+        return $inflector;
     }
 }
