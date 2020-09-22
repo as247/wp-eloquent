@@ -15,8 +15,7 @@
     "php": "^7.2",
     "ext-json": "*",
     "ext-pdo": "*",
-    "ext-mbstring": "*",
-    "doctrine/dbal": "^2.6"
+    "ext-mbstring": "*"
   },
   "suggest": {
     "doctrine/dbal": "Required to rename columns and drop SQLite columns (^2.6).",
