@@ -6,7 +6,9 @@ The WpEloquent component is a full database toolkit for PHP, providing an expres
 
 ## Installing
 
-`composer require as247/wp-eloquent`
+```SH
+composer require as247/wp-eloquent
+```
 
 ## Usage Instructions
 
