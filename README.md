@@ -1,20 +1,23 @@
-## As247 WpEloquent
+# As247 WpEloquent
 
 > This package extract from laravel 8.9
 
 The WpEloquent component is a full database toolkit for PHP, providing an expressive query builder, ActiveRecord style ORM, and schema builder. It currently supports MySQL, Postgres, SQL Server, and SQLite.
+##Installing
 
-### Usage Instructions
+`composer require as247/wp-eloquent`
+
+## Usage Instructions
 
 First, boot Application with a connection.
 
-#### Use $wpdb connection
+**Use $wpdb connection**
 ```PHP
 use As247\WpEloquent\Application;
 
 Application::bootWp();
 ````
-#### Use separated connection
+**Use separated connection**
 ```PHP
 use As247\WpEloquent\Application;
 
@@ -64,3 +67,7 @@ $users = User::where('votes', '>', 1)->get();
 ```
 
 For further documentation on using the various database facilities this library provides, consult the [Laravel framework documentation](https://laravel.com/docs).
+
+## Version 1.0
+You are looking for v1.x? Check it here
+https://github.com/as247/wp-eloquent/tree/1.x
