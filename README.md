@@ -2,7 +2,7 @@
 
 > This package extract from laravel 8.9
 
-The Fact component is a full database toolkit for PHP, providing an expressive query builder, ActiveRecord style ORM, and schema builder. It currently supports MySQL, Postgres, SQL Server, and SQLite.
+The WpEloquent component is a full database toolkit for PHP, providing an expressive query builder, ActiveRecord style ORM, and schema builder. It currently supports MySQL, Postgres, SQL Server, and SQLite.
 
 ### Usage Instructions
 
