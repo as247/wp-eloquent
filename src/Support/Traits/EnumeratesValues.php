@@ -3,6 +3,7 @@
 namespace As247\WpEloquent\Support\Traits;
 
 use CachingIterator;
+use Closure;
 use Exception;
 use As247\WpEloquent\Contracts\Support\Arrayable;
 use As247\WpEloquent\Contracts\Support\Jsonable;
@@ -10,6 +11,7 @@ use As247\WpEloquent\Support\Arr;
 use As247\WpEloquent\Support\Collection;
 use As247\WpEloquent\Support\Enumerable;
 use As247\WpEloquent\Support\HigherOrderCollectionProxy;
+use As247\WpEloquent\Support\HigherOrderWhenProxy;
 use JsonSerializable;
 use Symfony\Component\VarDumper\VarDumper;
 use Traversable;
@@ -30,10 +32,12 @@ use Traversable;
  * @property-read HigherOrderCollectionProxy $min
  * @property-read HigherOrderCollectionProxy $partition
  * @property-read HigherOrderCollectionProxy $reject
+ * @property-read HigherOrderCollectionProxy $some
  * @property-read HigherOrderCollectionProxy $sortBy
  * @property-read HigherOrderCollectionProxy $sortByDesc
  * @property-read HigherOrderCollectionProxy $sum
  * @property-read HigherOrderCollectionProxy $unique
+ * @property-read HigherOrderCollectionProxy $until
  */
 trait EnumeratesValues
 {
@@ -43,9 +47,31 @@ trait EnumeratesValues
      * @var array
      */
     protected static $proxies = [
-        'average', 'avg', 'contains', 'each', 'every', 'filter', 'first',
-        'flatMap', 'groupBy', 'keyBy', 'map', 'max', 'min', 'partition',
-        'reject', 'some', 'sortBy', 'sortByDesc', 'sum', 'unique',
+        'average',
+        'avg',
+        'contains',
+        'each',
+        'every',
+        'filter',
+        'first',
+        'flatMap',
+        'groupBy',
+        'keyBy',
+        'map',
+        'max',
+        'min',
+        'partition',
+        'reject',
+        'skipUntil',
+        'skipWhile',
+        'some',
+        'sortBy',
+        'sortByDesc',
+        'sum',
+        'takeUntil',
+        'takeWhile',
+        'unique',
+        'until',
     ];
 
     /**
@@ -84,6 +110,34 @@ trait EnumeratesValues
     }
 
     /**
+     * Create a new instance with no items.
+     *
+     * @return static
+     */
+    public static function empty()
+    {
+        return new static([]);
+    }
+
+    /**
+     * Create a new collection by invoking the callback a given amount of times.
+     *
+     * @param  int  $number
+     * @param  callable|null  $callback
+     * @return static
+     */
+    public static function times($number, callable $callback = null)
+    {
+        if ($number < 1) {
+            return new static;
+        }
+
+        return static::range(1, $number)
+            ->when($callback)
+            ->map($callback);
+    }
+
+    /**
      * Alias for the "avg" method.
      *
      * @param  callable|string|null  $callback
@@ -118,7 +172,7 @@ trait EnumeratesValues
     {
         if (func_num_args() === 2) {
             return $this->contains(function ($item) use ($key, $value) {
-                return wpe_data_get($item, $key) === $value;
+                return asdb_data_get($item, $key) === $value;
             });
         }
 
@@ -145,7 +199,7 @@ trait EnumeratesValues
     {
         call_user_func_array([$this, 'dump'], $args);
 
-        die(1);
+        exit(1);
     }
 
     /**
@@ -155,8 +209,8 @@ trait EnumeratesValues
      */
     public function dump()
     {
-        (new static(func_get_args()))
-            ->push($this)
+        (new Collection(func_get_args()))
+            ->push($this->all())
             ->each(function ($item) {
                 VarDumper::dump($item);
             });
@@ -386,13 +440,9 @@ trait EnumeratesValues
      */
     public function sum($callback = null)
     {
-        if (is_null($callback)) {
-            $callback = function ($value) {
-                return $value;
-            };
-        } else {
-            $callback = $this->valueRetriever($callback);
-        }
+        $callback = is_null($callback)
+            ? $this->identity()
+            : $this->valueRetriever($callback);
 
         return $this->reduce(function ($result, $item) use ($callback) {
             return $result + $callback($item);
@@ -402,13 +452,17 @@ trait EnumeratesValues
     /**
      * Apply the callback if the value is truthy.
      *
-     * @param  bool  $value
-     * @param  callable  $callback
-     * @param  callable  $default
+     * @param  bool|mixed  $value
+     * @param  callable|null  $callback
+     * @param  callable|null  $default
      * @return static|mixed
      */
-    public function when($value, callable $callback, callable $default = null)
+    public function when($value, callable $callback = null, callable $default = null)
     {
+        if (! $callback) {
+            return new HigherOrderWhenProxy($this, $value);
+        }
+
         if ($value) {
             return $callback($this, $value);
         } elseif ($default) {
@@ -422,7 +476,7 @@ trait EnumeratesValues
      * Apply the callback if the collection is empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function whenEmpty(callable $callback, callable $default = null)
@@ -434,7 +488,7 @@ trait EnumeratesValues
      * Apply the callback if the collection is not empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function whenNotEmpty(callable $callback, callable $default = null)
@@ -447,7 +501,7 @@ trait EnumeratesValues
      *
      * @param  bool  $value
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unless($value, callable $callback, callable $default = null)
@@ -459,7 +513,7 @@ trait EnumeratesValues
      * Apply the callback unless the collection is empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unlessEmpty(callable $callback, callable $default = null)
@@ -471,7 +525,7 @@ trait EnumeratesValues
      * Apply the callback unless the collection is not empty.
      *
      * @param  callable  $callback
-     * @param  callable  $default
+     * @param  callable|null  $default
      * @return static|mixed
      */
     public function unlessNotEmpty(callable $callback, callable $default = null)
@@ -490,6 +544,28 @@ trait EnumeratesValues
     public function where($key, $operator = null, $value = null)
     {
         return $this->filter($this->operatorForWhere(...func_get_args()));
+    }
+
+    /**
+     * Filter items where the value for the given key is null.
+     *
+     * @param  string|null  $key
+     * @return static
+     */
+    public function whereNull($key = null)
+    {
+        return $this->whereStrict($key, null);
+    }
+
+    /**
+     * Filter items where the value for the given key is not null.
+     *
+     * @param  string|null  $key
+     * @return static
+     */
+    public function whereNotNull($key = null)
+    {
+        return $this->where($key, '!==', null);
     }
 
     /**
@@ -517,7 +593,7 @@ trait EnumeratesValues
         $values = $this->getArrayableItems($values);
 
         return $this->filter(function ($item) use ($key, $values, $strict) {
-            return in_array(wpe_data_get($item, $key), $values, $strict);
+            return in_array(asdb_data_get($item, $key), $values, $strict);
         });
     }
 
@@ -555,7 +631,7 @@ trait EnumeratesValues
     public function whereNotBetween($key, $values)
     {
         return $this->filter(function ($item) use ($key, $values) {
-            return wpe_data_get($item, $key) < reset($values) || wpe_data_get($item, $key) > end($values);
+            return asdb_data_get($item, $key) < reset($values) || asdb_data_get($item, $key) > end($values);
         });
     }
 
@@ -572,7 +648,7 @@ trait EnumeratesValues
         $values = $this->getArrayableItems($values);
 
         return $this->reject(function ($item) use ($key, $values, $strict) {
-            return in_array(wpe_data_get($item, $key), $values, $strict);
+            return in_array(asdb_data_get($item, $key), $values, $strict);
         });
     }
 
@@ -604,12 +680,23 @@ trait EnumeratesValues
     /**
      * Pass the collection to the given callback and return the result.
      *
-     * @param  callable $callback
+     * @param  callable  $callback
      * @return mixed
      */
     public function pipe(callable $callback)
     {
         return $callback($this);
+    }
+
+    /**
+     * Pass the collection into a new class.
+     *
+     * @param  string  $class
+     * @return mixed
+     */
+    public function pipeInto($class)
+    {
+        return new $class($this);
     }
 
     /**
@@ -740,25 +827,6 @@ trait EnumeratesValues
     }
 
     /**
-     * Count the number of items in the collection using a given truth test.
-     *
-     * @param  callable|null  $callback
-     * @return static
-     */
-    public function countBy($callback = null)
-    {
-        if (is_null($callback)) {
-            $callback = function ($value) {
-                return $value;
-            };
-        }
-
-        return new static($this->groupBy($callback)->map(function ($value) {
-            return $value->count();
-        }));
-    }
-
-    /**
      * Convert the collection to its string representation.
      *
      * @return string
@@ -825,7 +893,7 @@ trait EnumeratesValues
      * Get an operator checker callback.
      *
      * @param  string  $key
-     * @param  string  $operator
+     * @param  string|null  $operator
      * @param  mixed  $value
      * @return \Closure
      */
@@ -844,7 +912,7 @@ trait EnumeratesValues
         }
 
         return function ($item) use ($key, $operator, $value) {
-            $retrieved = wpe_data_get($item, $key);
+            $retrieved = asdb_data_get($item, $key);
 
             $strings = array_filter([$retrieved, $value], function ($value) {
                 return is_string($value) || (is_object($value) && method_exists($value, '__toString'));
@@ -894,7 +962,45 @@ trait EnumeratesValues
         }
 
         return function ($item) use ($value) {
-            return wpe_data_get($item, $value);
+            return asdb_data_get($item, $value);
+        };
+    }
+
+    /**
+     * Make a function to check an item's equality.
+     *
+     * @param  mixed  $value
+     * @return \Closure
+     */
+    protected function equality($value)
+    {
+        return function ($item) use ($value) {
+            return $item === $value;
+        };
+    }
+
+    /**
+     * Make a function using another function, by negating its result.
+     *
+     * @param  \Closure  $callback
+     * @return \Closure
+     */
+    protected function negate(Closure $callback)
+    {
+        return function (...$params) use ($callback) {
+            return ! $callback(...$params);
+        };
+    }
+
+    /**
+     * Make a function that returns what's passed to it.
+     *
+     * @return \Closure
+     */
+    protected function identity()
+    {
+        return function ($value) {
+            return $value;
         };
     }
 }

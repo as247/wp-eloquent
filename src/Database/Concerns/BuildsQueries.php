@@ -83,6 +83,8 @@ trait BuildsQueries
 
         $lastId = null;
 
+        $page = 1;
+
         do {
             $clone = clone $this;
 
@@ -100,32 +102,34 @@ trait BuildsQueries
             // On each chunk result set, we will pass them to the callback and then let the
             // developer take care of everything within the callback, which allows us to
             // keep the memory low for spinning through large result sets for working.
-            if ($callback($results) === false) {
+            if ($callback($results, $page) === false) {
                 return false;
             }
 
             $lastId = $results->last()->{$alias};
 
             unset($results);
+
+            $page++;
         } while ($countResults == $count);
 
         return true;
     }
 
     /**
-     * Execute a callback over each item while chunking by id.
+     * Execute a callback over each item while chunking by ID.
      *
      * @param  callable  $callback
      * @param  int  $count
-     * @param  string  $column
-     * @param  string  $alias
+     * @param  string|null  $column
+     * @param  string|null  $alias
      * @return bool
      */
     public function eachById(callable $callback, $count = 1000, $column = null, $alias = null)
     {
-        return $this->chunkById($count, function ($results) use ($callback) {
+        return $this->chunkById($count, function ($results, $page) use ($callback, $count) {
             foreach ($results as $key => $value) {
-                if ($callback($value, $key) === false) {
+                if ($callback($value, (($page - 1) * $count) + $key) === false) {
                     return false;
                 }
             }
@@ -135,7 +139,7 @@ trait BuildsQueries
     /**
      * Execute the query and get the first result.
      *
-     * @param  array  $columns
+     * @param  array|string  $columns
      * @return \As247\WpEloquent\Database\Eloquent\Model|object|static|null
      */
     public function first($columns = ['*'])
@@ -166,7 +170,7 @@ trait BuildsQueries
      * Pass the query to a given callback.
      *
      * @param  callable  $callback
-     * @return \As247\WpEloquent\Database\Query\Builder
+     * @return $this
      */
     public function tap($callback)
     {
@@ -213,8 +217,8 @@ trait BuildsQueries
      * Create a new simple paginator instance.
      *
      * @param  \As247\WpEloquent\Support\Collection  $items
-     * @param  int $perPage
-     * @param  int $currentPage
+     * @param  int  $perPage
+     * @param  int  $currentPage
      * @param  array  $options
      * @return \As247\WpEloquent\Pagination\Paginator
      */

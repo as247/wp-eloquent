@@ -27,7 +27,7 @@ class MorphOne extends MorphOneOrMany
     /**
      * Initialize the relation on a set of models.
      *
-     * @param  array   $models
+     * @param  array  $models
      * @param  string  $relation
      * @return array
      */
@@ -43,7 +43,7 @@ class MorphOne extends MorphOneOrMany
     /**
      * Match the eagerly loaded results to their parents.
      *
-     * @param  array   $models
+     * @param  array  $models
      * @param  \As247\WpEloquent\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array

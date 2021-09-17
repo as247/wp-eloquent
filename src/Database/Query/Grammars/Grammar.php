@@ -85,10 +85,7 @@ class Grammar extends BaseGrammar
         $sql = [];
 
         foreach ($this->selectComponents as $component) {
-            // To compile the query, we'll spin through each component of the query and
-            // see if that component exists. If it does we'll just call the compiler
-            // function for the component which is responsible for making the SQL.
-            if (isset($query->$component) && ! is_null($query->$component)) {
+            if (isset($query->$component)) {
                 $method = 'compile'.ucfirst($component);
 
                 $sql[$component] = $this->$method($query, $query->$component);
@@ -167,7 +164,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileJoins(Builder $query, $joins)
     {
-        return wpe_collect($joins)->map(function ($join) use ($query) {
+        return asdb_collect($joins)->map(function ($join) use ($query) {
             $table = $this->wrapTable($join->table);
 
             $nestedJoins = is_null($join->joins) ? '' : ' '.$this->compileJoins($query, $join->joins);
@@ -184,7 +181,7 @@ class Grammar extends BaseGrammar
      * @param  \As247\WpEloquent\Database\Query\Builder  $query
      * @return string
      */
-    protected function compileWheres(Builder $query)
+    public function compileWheres(Builder $query)
     {
         // Each type of where clauses has its own compiler function which is responsible
         // for actually creating the where clauses SQL. This helps keep the code nice
@@ -211,7 +208,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileWheresToArray($query)
     {
-        return wpe_collect($query->wheres)->map(function ($where) use ($query) {
+        return asdb_collect($query->wheres)->map(function ($where) use ($query) {
             return $where['boolean'].' '.$this->{"where{$where['type']}"}($query, $where);
         })->all();
     }
@@ -253,7 +250,9 @@ class Grammar extends BaseGrammar
     {
         $value = $this->parameter($where['value']);
 
-        return $this->wrap($where['column']).' '.$where['operator'].' '.$value;
+        $operator = str_replace('?', '??', $where['operator']);
+
+        return $this->wrap($where['column']).' '.$operator.' '.$value;
     }
 
     /**
@@ -367,6 +366,24 @@ class Grammar extends BaseGrammar
     }
 
     /**
+     * Compile a "between" where clause.
+     *
+     * @param  \As247\WpEloquent\Database\Query\Builder  $query
+     * @param  array  $where
+     * @return string
+     */
+    protected function whereBetweenColumns(Builder $query, $where)
+    {
+        $between = $where['not'] ? 'not between' : 'between';
+
+        $min = $this->wrap(reset($where['values']));
+
+        $max = $this->wrap(end($where['values']));
+
+        return $this->wrap($where['column']).' '.$between.' '.$min.' and '.$max;
+    }
+
+    /**
      * Compile a "where date" clause.
      *
      * @param  \As247\WpEloquent\Database\Query\Builder  $query
@@ -473,8 +490,8 @@ class Grammar extends BaseGrammar
     /**
      * Compile a where condition with a sub-select.
      *
-     * @param  \As247\WpEloquent\Database\Query\Builder $query
-     * @param  array   $where
+     * @param  \As247\WpEloquent\Database\Query\Builder  $query
+     * @param  array  $where
      * @return string
      */
     protected function whereSub(Builder $query, $where)
@@ -641,7 +658,7 @@ class Grammar extends BaseGrammar
     /**
      * Compile a single having clause.
      *
-     * @param  array   $having
+     * @param  array  $having
      * @return string
      */
     protected function compileHaving(array $having)
@@ -661,7 +678,7 @@ class Grammar extends BaseGrammar
     /**
      * Compile a basic having clause.
      *
-     * @param  array   $having
+     * @param  array  $having
      * @return string
      */
     protected function compileBasicHaving($having)
@@ -685,9 +702,9 @@ class Grammar extends BaseGrammar
 
         $column = $this->wrap($having['column']);
 
-        $min = $this->parameter(head($having['values']));
+        $min = $this->parameter(asdb_head($having['values']));
 
-        $max = $this->parameter(last($having['values']));
+        $max = $this->parameter(asdb_last($having['values']));
 
         return $having['boolean'].' '.$column.' '.$between.' '.$min.' and '.$max;
     }
@@ -865,7 +882,7 @@ class Grammar extends BaseGrammar
         // We need to build a list of parameter place-holders of values that are bound
         // to the query. Each insert should have the exact same amount of parameter
         // bindings so we will loop through the record and parameterize them all.
-        $parameters = wpe_collect($values)->map(function ($record) {
+        $parameters = asdb_collect($values)->map(function ($record) {
             return '('.$this->parameterize($record).')';
         })->implode(', ');
 
@@ -878,6 +895,8 @@ class Grammar extends BaseGrammar
      * @param  \As247\WpEloquent\Database\Query\Builder  $query
      * @param  array  $values
      * @return string
+     *
+     * @throws \RuntimeException
      */
     public function compileInsertOrIgnore(Builder $query, array $values)
     {
@@ -888,7 +907,7 @@ class Grammar extends BaseGrammar
      * Compile an insert and get ID statement into SQL.
      *
      * @param  \As247\WpEloquent\Database\Query\Builder  $query
-     * @param  array   $values
+     * @param  array  $values
      * @param  string  $sequence
      * @return string
      */
@@ -941,7 +960,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileUpdateColumns(Builder $query, array $values)
     {
-        return wpe_collect($values)->map(function ($value, $key) {
+        return asdb_collect($values)->map(function ($value, $key) {
             return $this->wrap($key).' = '.$this->parameter($value);
         })->implode(', ');
     }
@@ -1034,7 +1053,7 @@ class Grammar extends BaseGrammar
      */
     protected function compileDeleteWithJoins(Builder $query, $table, $where)
     {
-        $alias = last(explode(' as ', $table));
+        $alias = asdb_last(explode(' as ', $table));
 
         $joins = $this->compileJoins($query, $query->joins);
 
@@ -1113,7 +1132,7 @@ class Grammar extends BaseGrammar
      * Wrap a value in keyword identifiers.
      *
      * @param  \As247\WpEloquent\Database\Query\Expression|string  $value
-     * @param  bool    $prefixAlias
+     * @param  bool  $prefixAlias
      * @return string
      */
     public function wrap($value, $prefixAlias = false)
@@ -1144,6 +1163,8 @@ class Grammar extends BaseGrammar
      *
      * @param  string  $value
      * @return string
+     *
+     * @throws \RuntimeException
      */
     protected function wrapJsonSelector($value)
     {
@@ -1198,7 +1219,7 @@ class Grammar extends BaseGrammar
      */
     protected function wrapJsonPath($value, $delimiter = '->')
     {
-        $value = preg_replace("/([\\\\]+)?\\'/", "\\'", $value);
+        $value = preg_replace("/([\\\\]+)?\\'/", "''", $value);
 
         return '\'$."'.str_replace($delimiter, '"."', $value).'"\'';
     }
@@ -1217,7 +1238,7 @@ class Grammar extends BaseGrammar
     /**
      * Concatenate an array of segments, removing empties.
      *
-     * @param  array   $segments
+     * @param  array  $segments
      * @return string
      */
     protected function concatenate($segments)

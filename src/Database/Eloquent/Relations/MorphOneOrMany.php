@@ -112,7 +112,7 @@ abstract class MorphOneOrMany extends HasOneOrMany
      */
     public function getMorphType()
     {
-        return last(explode('.', $this->morphType));
+        return asdb_last(explode('.', $this->morphType));
     }
 
     /**

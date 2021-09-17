@@ -7,10 +7,22 @@ use As247\WpEloquent\Database\Query\Grammars\MySqlGrammar as QueryGrammar;
 use As247\WpEloquent\Database\Query\Processors\MySqlProcessor;
 use As247\WpEloquent\Database\Schema\Grammars\MySqlGrammar as SchemaGrammar;
 use As247\WpEloquent\Database\Schema\MySqlBuilder;
+use As247\WpEloquent\Database\Schema\MySqlSchemaState;
+use As247\WpEloquent\Filesystem\Filesystem;
 use PDO;
 
 class MySqlConnection extends Connection
 {
+    /**
+     * Determine if the connected database is a MariaDB database.
+     *
+     * @return bool
+     */
+    public function isMaria()
+    {
+        return strpos($this->getPdo()->getAttribute(PDO::ATTR_SERVER_VERSION), 'MariaDB') !== false;
+    }
+
     /**
      * Get the default query grammar instance.
      *
@@ -46,6 +58,18 @@ class MySqlConnection extends Connection
     }
 
     /**
+     * Get the schema state for the connection.
+     *
+     * @param  \As247\WpEloquent\Filesystem\Filesystem|null  $files
+     * @param  callable|null  $processFactory
+     * @return \As247\WpEloquent\Database\Schema\MySqlSchemaState
+     */
+    public function getSchemaState(Filesystem $files = null, callable $processFactory = null)
+    {
+        return new MySqlSchemaState($this, $files, $processFactory);
+    }
+
+    /**
      * Get the default post processor instance.
      *
      * @return \As247\WpEloquent\Database\Query\Processors\MySqlProcessor
@@ -63,22 +87,5 @@ class MySqlConnection extends Connection
     protected function getDoctrineDriver()
     {
         return new DoctrineDriver;
-    }
-
-    /**
-     * Bind values to their parameters in the given statement.
-     *
-     * @param  \PDOStatement $statement
-     * @param  array  $bindings
-     * @return void
-     */
-    public function bindValues($statement, $bindings)
-    {
-        foreach ($bindings as $key => $value) {
-            $statement->bindValue(
-                is_string($key) ? $key : $key + 1, $value,
-                is_int($value) || is_float($value) ? PDO::PARAM_INT : PDO::PARAM_STR
-            );
-        }
     }
 }

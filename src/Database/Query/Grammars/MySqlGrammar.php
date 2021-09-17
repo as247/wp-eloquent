@@ -15,6 +15,43 @@ class MySqlGrammar extends Grammar
     protected $operators = ['sounds like'];
 
     /**
+     * Add a "where null" clause to the query.
+     *
+     * @param  string|array  $columns
+     * @param  string  $boolean
+     * @param  bool  $not
+     * @return $this
+     */
+    protected function whereNull(Builder $query, $where)
+    {
+        if ($this->isJsonSelector($where['column'])) {
+            [$field, $path] = $this->wrapJsonFieldAndPath($where['column']);
+
+            return '(json_extract('.$field.$path.') is null OR json_type(json_extract('.$field.$path.')) = \'NULL\')';
+        }
+
+        return parent::whereNull($query, $where);
+    }
+
+    /**
+     * Add a "where not null" clause to the query.
+     *
+     * @param  string|array  $columns
+     * @param  string  $boolean
+     * @return $this
+     */
+    protected function whereNotNull(Builder $query, $where)
+    {
+        if ($this->isJsonSelector($where['column'])) {
+            [$field, $path] = $this->wrapJsonFieldAndPath($where['column']);
+
+            return '(json_extract('.$field.$path.') is not null AND json_type(json_extract('.$field.$path.')) != \'NULL\')';
+        }
+
+        return parent::whereNotNull($query, $where);
+    }
+
+    /**
      * Compile an insert ignore statement into SQL.
      *
      * @param  \As247\WpEloquent\Database\Query\Builder  $query
@@ -107,7 +144,7 @@ class MySqlGrammar extends Grammar
      */
     protected function compileUpdateColumns(Builder $query, array $values)
     {
-        return wpe_collect($values)->map(function ($value, $key) {
+        return asdb_collect($values)->map(function ($value, $key) {
             if ($this->isJsonSelector($key)) {
                 return $this->compileJsonUpdateColumn($key, $value);
             }
@@ -173,7 +210,7 @@ class MySqlGrammar extends Grammar
      */
     public function prepareBindingsForUpdate(array $bindings, array $values)
     {
-        $values = wpe_collect($values)->reject(function ($value, $column) {
+        $values = asdb_collect($values)->reject(function ($value, $column) {
             return $this->isJsonSelector($column) && is_bool($value);
         })->map(function ($value) {
             return is_array($value) ? json_encode($value) : $value;

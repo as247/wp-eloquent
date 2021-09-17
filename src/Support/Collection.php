@@ -31,23 +31,15 @@ class Collection implements ArrayAccess, Enumerable
     }
 
     /**
-     * Create a new collection by invoking the callback a given amount of times.
+     * Create a collection with the given range.
      *
-     * @param  int  $number
-     * @param  callable  $callback
+     * @param  int  $from
+     * @param  int  $to
      * @return static
      */
-    public static function times($number, callable $callback = null)
+    public static function range($from, $to)
     {
-        if ($number < 1) {
-            return new static;
-        }
-
-        if (is_null($callback)) {
-            return new static(range(1, $number));
-        }
-
-        return (new static(range(1, $number)))->map($callback);
+        return new static(range($from, $to));
     }
 
     /**
@@ -94,7 +86,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Get the median of a given key.
      *
-     * @param  string|array|null $key
+     * @param  string|array|null  $key
      * @return mixed
      */
     public function median($key = null)
@@ -135,7 +127,7 @@ class Collection implements ArrayAccess, Enumerable
 
         $collection = isset($key) ? $this->pluck($key) : $this;
 
-        $counts = new self;
+        $counts = new static;
 
         $collection->each(function ($value) use ($counts) {
             $counts[$value] = isset($counts[$value]) ? $counts[$value] + 1 : 1;
@@ -412,11 +404,11 @@ class Collection implements ArrayAccess, Enumerable
      */
     public function get($key, $default = null)
     {
-        if ($this->offsetExists($key)) {
+        if (array_key_exists($key, $this->items)) {
             return $this->items[$key];
         }
 
-        return wpe_value($default);
+        return asdb_value($default);
     }
 
     /**
@@ -428,7 +420,7 @@ class Collection implements ArrayAccess, Enumerable
      */
     public function groupBy($groupBy, $preserveKeys = false)
     {
-        if (is_array($groupBy)) {
+        if (! $this->useAsCallable($groupBy) && is_array($groupBy)) {
             $nextGroups = $groupBy;
 
             $groupBy = array_shift($nextGroups);
@@ -501,7 +493,7 @@ class Collection implements ArrayAccess, Enumerable
         $keys = is_array($key) ? $key : func_get_args();
 
         foreach ($keys as $value) {
-            if (! $this->offsetExists($value)) {
+            if (! array_key_exists($value, $this->items)) {
                 return false;
             }
         }
@@ -513,14 +505,14 @@ class Collection implements ArrayAccess, Enumerable
      * Concatenate values of a given key as a string.
      *
      * @param  string  $value
-     * @param  string  $glue
+     * @param  string|null  $glue
      * @return string
      */
     public function implode($value, $glue = null)
     {
         $first = $this->first();
 
-        if (is_array($first) || is_object($first)) {
+        if (is_array($first) || (is_object($first) && ! $first instanceof Stringable)) {
             return implode($glue, $this->pluck($value)->all());
         }
 
@@ -800,20 +792,22 @@ class Collection implements ArrayAccess, Enumerable
      */
     public function prepend($value, $key = null)
     {
-        $this->items = Arr::prepend($this->items, $value, $key);
+        $this->items = Arr::prepend($this->items, ...func_get_args());
 
         return $this;
     }
 
     /**
-     * Push an item onto the end of the collection.
+     * Push one or more items onto the end of the collection.
      *
-     * @param  mixed  $value
+     * @param  mixed  $values [optional]
      * @return $this
      */
-    public function push($value)
+    public function push(...$values)
     {
-        $this->items[] = $value;
+        foreach ($values as $value) {
+            $this->items[] = $value;
+        }
 
         return $this;
     }
@@ -957,7 +951,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Shuffle the items in the collection.
      *
-     * @param  int  $seed
+     * @param  int|null  $seed
      * @return static
      */
     public function shuffle($seed = null)
@@ -977,10 +971,32 @@ class Collection implements ArrayAccess, Enumerable
     }
 
     /**
+     * Skip items in the collection until the given condition is met.
+     *
+     * @param  mixed  $value
+     * @return static
+     */
+    public function skipUntil($value)
+    {
+        return new static($this->lazy()->skipUntil($value)->all());
+    }
+
+    /**
+     * Skip items in the collection while the given condition is met.
+     *
+     * @param  mixed  $value
+     * @return static
+     */
+    public function skipWhile($value)
+    {
+        return new static($this->lazy()->skipWhile($value)->all());
+    }
+
+    /**
      * Slice the underlying collection array.
      *
      * @param  int  $offset
-     * @param  int  $length
+     * @param  int|null  $length
      * @return static
      */
     public function slice($offset, $length = null)
@@ -1047,18 +1063,46 @@ class Collection implements ArrayAccess, Enumerable
     }
 
     /**
-     * Sort through each item with a callback.
+     * Chunk the collection into chunks with a callback.
      *
-     * @param  callable|null  $callback
+     * @param  callable  $callback
      * @return static
      */
-    public function sort(callable $callback = null)
+    public function chunkWhile(callable $callback)
+    {
+        return new static(
+            $this->lazy()->chunkWhile($callback)->mapInto(static::class)
+        );
+    }
+
+    /**
+     * Sort through each item with a callback.
+     *
+     * @param  callable|int|null  $callback
+     * @return static
+     */
+    public function sort($callback = null)
     {
         $items = $this->items;
 
-        $callback
+        $callback && is_callable($callback)
             ? uasort($items, $callback)
-            : asort($items);
+            : asort($items, $callback);
+
+        return new static($items);
+    }
+
+    /**
+     * Sort items in descending order.
+     *
+     * @param  int  $options
+     * @return static
+     */
+    public function sortDesc($options = SORT_REGULAR)
+    {
+        $items = $this->items;
+
+        arsort($items, $options);
 
         return new static($items);
     }
@@ -1128,7 +1172,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Sort the collection keys in descending order.
      *
-     * @param  int $options
+     * @param  int  $options
      * @return static
      */
     public function sortKeysDesc($options = SORT_REGULAR)
@@ -1169,6 +1213,28 @@ class Collection implements ArrayAccess, Enumerable
     }
 
     /**
+     * Take items in the collection until the given condition is met.
+     *
+     * @param  mixed  $value
+     * @return static
+     */
+    public function takeUntil($value)
+    {
+        return new static($this->lazy()->takeUntil($value)->all());
+    }
+
+    /**
+     * Take items in the collection while the given condition is met.
+     *
+     * @param  mixed  $value
+     * @return static
+     */
+    public function takeWhile($value)
+    {
+        return new static($this->lazy()->takeWhile($value)->all());
+    }
+
+    /**
      * Transform each item in the collection using a callback.
      *
      * @param  callable  $callback
@@ -1197,7 +1263,7 @@ class Collection implements ArrayAccess, Enumerable
      * e.g. new Collection([1, 2, 3])->zip([4, 5, 6]);
      *      => [[1, 4], [2, 5], [3, 6]]
      *
-     * @param  mixed ...$items
+     * @param  mixed  ...$items
      * @return static
      */
     public function zip($items)
@@ -1246,6 +1312,17 @@ class Collection implements ArrayAccess, Enumerable
     }
 
     /**
+     * Count the number of items in the collection by a field or using a callback.
+     *
+     * @param  callable|string  $countBy
+     * @return static
+     */
+    public function countBy($countBy = null)
+    {
+        return new static($this->lazy()->countBy($countBy)->all());
+    }
+
+    /**
      * Add an item to the collection.
      *
      * @param  mixed  $item
@@ -1276,7 +1353,7 @@ class Collection implements ArrayAccess, Enumerable
      */
     public function offsetExists($key)
     {
-        return array_key_exists($key, $this->items);
+        return isset($this->items[$key]);
     }
 
     /**

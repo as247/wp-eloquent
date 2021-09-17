@@ -16,7 +16,7 @@ class SQLiteGrammar extends Grammar
      *
      * @var array
      */
-    protected $modifiers = ['Nullable', 'Default', 'Increment'];
+    protected $modifiers = ['VirtualAs', 'StoredAs', 'Nullable', 'Default', 'Increment'];
 
     /**
      * The columns available as serials.
@@ -74,7 +74,7 @@ class SQLiteGrammar extends Grammar
     {
         $foreigns = $this->getCommandsByName($blueprint, 'foreign');
 
-        return wpe_collect($foreigns)->reduce(function ($sql, $foreign) {
+        return asdb_collect($foreigns)->reduce(function ($sql, $foreign) {
             // Once we have all the foreign key commands for the table creation statement
             // we'll loop through each of them and add them to the create table SQL we
             // are building, since SQLite needs foreign keys on the tables creation.
@@ -137,7 +137,9 @@ class SQLiteGrammar extends Grammar
     {
         $columns = $this->prefixArray('add column', $this->getColumns($blueprint));
 
-        return wpe_collect($columns)->map(function ($column) use ($blueprint) {
+        return asdb_collect($columns)->reject(function ($column) {
+            return preg_match('/as \(.*\) stored/', $column) > 0;
+        })->map(function ($column) use ($blueprint) {
             return 'alter table '.$this->wrapTable($blueprint).' '.$column;
         })->all();
     }
@@ -179,6 +181,7 @@ class SQLiteGrammar extends Grammar
      *
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
      * @param  \As247\WpEloquent\Support\Fluent  $command
+     * @return void
      *
      * @throws \RuntimeException
      */
@@ -309,6 +312,7 @@ class SQLiteGrammar extends Grammar
      *
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
      * @param  \As247\WpEloquent\Support\Fluent  $command
+     * @return void
      *
      * @throws \RuntimeException
      */
@@ -334,10 +338,12 @@ class SQLiteGrammar extends Grammar
     /**
      * Compile a rename index command.
      *
-     * @param  \As247\WpEloquent\Database\Schema\Blueprint $blueprint
-     * @param  \As247\WpEloquent\Support\Fluent $command
-     * @param  \As247\WpEloquent\Database\Connection $connection
+     * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
+     * @param  \As247\WpEloquent\Support\Fluent  $command
+     * @param  \As247\WpEloquent\Database\Connection  $connection
      * @return array
+     *
+     * @throws \RuntimeException
      */
     public function compileRenameIndex(Blueprint $blueprint, Fluent $command, Connection $connection)
     {
@@ -460,7 +466,7 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
-     * Create the column definition for a integer type.
+     * Create the column definition for an integer type.
      *
      * @param  \As247\WpEloquent\Support\Fluent  $column
      * @return string
@@ -819,6 +825,47 @@ class SQLiteGrammar extends Grammar
     }
 
     /**
+     * Create the column definition for a generated, computed column type.
+     *
+     * @param  \As247\WpEloquent\Support\Fluent  $column
+     * @return void
+     *
+     * @throws \RuntimeException
+     */
+    protected function typeComputed(Fluent $column)
+    {
+        throw new RuntimeException('This database driver requires a type, see the virtualAs / storedAs modifiers.');
+    }
+
+    /**
+     * Get the SQL for a generated virtual column modifier.
+     *
+     * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
+     * @param  \As247\WpEloquent\Support\Fluent  $column
+     * @return string|null
+     */
+    protected function modifyVirtualAs(Blueprint $blueprint, Fluent $column)
+    {
+        if (! is_null($column->virtualAs)) {
+            return " as ({$column->virtualAs})";
+        }
+    }
+
+    /**
+     * Get the SQL for a generated stored column modifier.
+     *
+     * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
+     * @param  \As247\WpEloquent\Support\Fluent  $column
+     * @return string|null
+     */
+    protected function modifyStoredAs(Blueprint $blueprint, Fluent $column)
+    {
+        if (! is_null($column->storedAs)) {
+            return " as ({$column->storedAs}) stored";
+        }
+    }
+
+    /**
      * Get the SQL for a nullable column modifier.
      *
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
@@ -827,7 +874,13 @@ class SQLiteGrammar extends Grammar
      */
     protected function modifyNullable(Blueprint $blueprint, Fluent $column)
     {
-        return $column->nullable ? ' null' : ' not null';
+        if (is_null($column->virtualAs) && is_null($column->storedAs)) {
+            return $column->nullable ? ' null' : ' not null';
+        }
+
+        if ($column->nullable === false) {
+            return ' not null';
+        }
     }
 
     /**
@@ -839,7 +892,7 @@ class SQLiteGrammar extends Grammar
      */
     protected function modifyDefault(Blueprint $blueprint, Fluent $column)
     {
-        if (! is_null($column->default)) {
+        if (! is_null($column->default) && is_null($column->virtualAs) && is_null($column->storedAs)) {
             return ' default '.$this->getDefaultValue($column->default);
         }
     }

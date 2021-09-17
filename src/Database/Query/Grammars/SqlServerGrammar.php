@@ -4,6 +4,7 @@ namespace As247\WpEloquent\Database\Query\Grammars;
 
 use As247\WpEloquent\Database\Query\Builder;
 use As247\WpEloquent\Support\Arr;
+use As247\WpEloquent\Support\Str;
 
 class SqlServerGrammar extends Grammar
 {
@@ -233,6 +234,23 @@ class SqlServerGrammar extends Grammar
     }
 
     /**
+     * Compile a delete statement without joins into SQL.
+     *
+     * @param  \As247\WpEloquent\Database\Query\Builder  $query
+     * @param  string  $table
+     * @param  string  $where
+     * @return string
+     */
+    protected function compileDeleteWithoutJoins(Builder $query, $table, $where)
+    {
+        $sql = parent::compileDeleteWithoutJoins($query, $table, $where);
+
+        return ! is_null($query->limit) && $query->limit > 0 && $query->offset <= 0
+                        ? Str::replaceFirst('delete', 'delete top ('.$query->limit.')', $sql)
+                        : $sql;
+    }
+
+    /**
      * Compile the random statement into SQL.
      *
      * @param  string  $seed
@@ -316,7 +334,7 @@ class SqlServerGrammar extends Grammar
      */
     protected function compileUpdateWithJoins(Builder $query, $table, $columns, $where)
     {
-        $alias = last(explode(' as ', $table));
+        $alias = asdb_last(explode(' as ', $table));
 
         $joins = $this->compileJoins($query, $query->joins);
 

@@ -4,7 +4,6 @@ namespace As247\WpEloquent\Container;
 
 use As247\WpEloquent\Contracts\Container\Container;
 use As247\WpEloquent\Contracts\Container\ContextualBindingBuilder as ContextualBindingBuilderContract;
-use As247\WpEloquent\Support\Arr;
 
 class ContextualBindingBuilder implements ContextualBindingBuilderContract
 {
@@ -58,13 +57,28 @@ class ContextualBindingBuilder implements ContextualBindingBuilderContract
     /**
      * Define the implementation for the contextual binding.
      *
-     * @param  \Closure|string  $implementation
+     * @param  \Closure|string|array  $implementation
      * @return void
      */
     public function give($implementation)
     {
-        foreach (Arr::wrap($this->concrete) as $concrete) {
+        foreach (Util::arrayWrap($this->concrete) as $concrete) {
             $this->container->addContextualBinding($concrete, $this->needs, $implementation);
         }
+    }
+
+    /**
+     * Define tagged services to be used as the implementation for the contextual binding.
+     *
+     * @param  string  $tag
+     * @return void
+     */
+    public function giveTagged($tag)
+    {
+        $this->give(function ($container) use ($tag) {
+            $taggedServices = $container->tagged($tag);
+
+            return is_array($taggedServices) ? $taggedServices : iterator_to_array($taggedServices);
+        });
     }
 }

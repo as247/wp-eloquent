@@ -51,7 +51,7 @@ class JoinClause extends Builder
     /**
      * Create a new join clause instance.
      *
-     * @param  \As247\WpEloquent\Database\Query\Builder $parentQuery
+     * @param  \As247\WpEloquent\Database\Query\Builder  $parentQuery
      * @param  string  $type
      * @param  string  $table
      * @return void
@@ -84,7 +84,7 @@ class JoinClause extends Builder
      *
      * @param  \Closure|string  $first
      * @param  string|null  $operator
-     * @param  string|null  $second
+     * @param  \As247\WpEloquent\Database\Query\Expression|string|null  $second
      * @param  string  $boolean
      * @return $this
      *

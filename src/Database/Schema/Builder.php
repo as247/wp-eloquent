@@ -5,6 +5,7 @@ namespace As247\WpEloquent\Database\Schema;
 use Closure;
 use Doctrine\DBAL\Types\Type;
 use As247\WpEloquent\Database\Connection;
+use InvalidArgumentException;
 use LogicException;
 use RuntimeException;
 
@@ -39,6 +40,13 @@ class Builder
     public static $defaultStringLength = 255;
 
     /**
+     * The default relationship morph key type.
+     *
+     * @var string
+     */
+    public static $defaultMorphKeyType = 'int';
+
+    /**
      * Create a new database Schema manager.
      *
      * @param  \As247\WpEloquent\Database\Connection  $connection
@@ -59,6 +67,31 @@ class Builder
     public static function defaultStringLength($length)
     {
         static::$defaultStringLength = $length;
+    }
+
+    /**
+     * Set the default morph key type for migrations.
+     *
+     * @param  string  $type
+     * @return void
+     */
+    public static function defaultMorphKeyType(string $type)
+    {
+        if (! in_array($type, ['int', 'uuid'])) {
+            throw new InvalidArgumentException("Morph key type must be 'int' or 'uuid'.");
+        }
+
+        static::$defaultMorphKeyType = $type;
+    }
+
+    /**
+     * Set the default morph key type for migrations to UUIDs.
+     *
+     * @return void
+     */
+    public static function morphUsingUuids()
+    {
+        return static::defaultMorphKeyType('uuid');
     }
 
     /**
@@ -94,7 +127,7 @@ class Builder
      * Determine if the given table has given columns.
      *
      * @param  string  $table
-     * @param  array   $columns
+     * @param  array  $columns
      * @return bool
      */
     public function hasColumns($table, array $columns)
@@ -142,7 +175,7 @@ class Builder
     /**
      * Modify a table on the schema.
      *
-     * @param  string    $table
+     * @param  string  $table
      * @param  \Closure  $callback
      * @return void
      */
@@ -154,13 +187,13 @@ class Builder
     /**
      * Create a new table on the schema.
      *
-     * @param  string    $table
+     * @param  string  $table
      * @param  \Closure  $callback
      * @return void
      */
     public function create($table, Closure $callback)
     {
-        $this->build(wpe_tap($this->createBlueprint($table), function ($blueprint) use ($callback) {
+        $this->build(asdb_tap($this->createBlueprint($table), function ($blueprint) use ($callback) {
             $blueprint->create();
 
             $callback($blueprint);
@@ -175,7 +208,7 @@ class Builder
      */
     public function drop($table)
     {
-        $this->build(wpe_tap($this->createBlueprint($table), function ($blueprint) {
+        $this->build(asdb_tap($this->createBlueprint($table), function ($blueprint) {
             $blueprint->drop();
         }));
     }
@@ -188,7 +221,7 @@ class Builder
      */
     public function dropIfExists($table)
     {
-        $this->build(wpe_tap($this->createBlueprint($table), function ($blueprint) {
+        $this->build(asdb_tap($this->createBlueprint($table), function ($blueprint) {
             $blueprint->dropIfExists();
         }));
     }
@@ -250,7 +283,7 @@ class Builder
      */
     public function rename($from, $to)
     {
-        $this->build(wpe_tap($this->createBlueprint($from), function ($blueprint) use ($to) {
+        $this->build(asdb_tap($this->createBlueprint($from), function ($blueprint) use ($to) {
             $blueprint->rename($to);
         }));
     }
@@ -319,6 +352,7 @@ class Builder
      * @return void
      *
      * @throws \Doctrine\DBAL\DBALException
+     * @throws \RuntimeException
      */
     public function registerCustomDoctrineType($class, $name, $type)
     {

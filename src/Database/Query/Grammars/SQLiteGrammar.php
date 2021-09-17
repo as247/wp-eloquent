@@ -20,6 +20,18 @@ class SQLiteGrammar extends Grammar
     ];
 
     /**
+     * Compile the lock into SQL.
+     *
+     * @param  \As247\WpEloquent\Database\Query\Builder  $query
+     * @param  bool|string  $value
+     * @return string
+     */
+    protected function compileLock(Builder $query, $value)
+    {
+        return '';
+    }
+
+    /**
      * Wrap a union subquery in parentheses.
      *
      * @param  string  $sql
@@ -157,11 +169,48 @@ class SQLiteGrammar extends Grammar
      */
     protected function compileUpdateColumns(Builder $query, array $values)
     {
-        return wpe_collect($values)->map(function ($value, $key) {
-            $column = last(explode('.', $key));
+        $jsonGroups = $this->groupJsonColumnsForUpdate($values);
 
-            return $this->wrap($column).' = '.$this->parameter($value);
+        return asdb_collect($values)->reject(function ($value, $key) {
+            return $this->isJsonSelector($key);
+        })->merge($jsonGroups)->map(function ($value, $key) use ($jsonGroups) {
+            $column = asdb_last(explode('.', $key));
+
+            $value = isset($jsonGroups[$key]) ? $this->compileJsonPatch($column, $value) : $this->parameter($value);
+
+            return $this->wrap($column).' = '.$value;
         })->implode(', ');
+    }
+
+    /**
+     * Group the nested JSON columns.
+     *
+     * @param  array  $values
+     * @return array
+     */
+    protected function groupJsonColumnsForUpdate(array $values)
+    {
+        $groups = [];
+
+        foreach ($values as $key => $value) {
+            if ($this->isJsonSelector($key)) {
+                Arr::set($groups, str_replace('->', '.', Str::after($key, '.')), $value);
+            }
+        }
+
+        return $groups;
+    }
+
+    /**
+     * Compile a "JSON" patch statement into SQL.
+     *
+     * @param  string  $column
+     * @param  mixed  $value
+     * @return string
+     */
+    protected function compileJsonPatch($column, $value)
+    {
+        return "json_patch(ifnull({$this->wrap($column)}, json('{}')), json({$this->parameter($value)}))";
     }
 
     /**
@@ -177,7 +226,7 @@ class SQLiteGrammar extends Grammar
 
         $columns = $this->compileUpdateColumns($query, $values);
 
-        $alias = last(preg_split('/\s+as\s+/i', $query->from));
+        $alias = asdb_last(preg_split('/\s+as\s+/i', $query->from));
 
         $selectSql = $this->compileSelect($query->select($alias.'.rowid'));
 
@@ -193,7 +242,11 @@ class SQLiteGrammar extends Grammar
      */
     public function prepareBindingsForUpdate(array $bindings, array $values)
     {
-        $values = wpe_collect($values)->map(function ($value) {
+        $groups = $this->groupJsonColumnsForUpdate($values);
+
+        $values = asdb_collect($values)->reject(function ($value, $key) {
+            return $this->isJsonSelector($key);
+        })->merge($groups)->map(function ($value) {
             return is_array($value) ? json_encode($value) : $value;
         })->all();
 
@@ -229,7 +282,7 @@ class SQLiteGrammar extends Grammar
     {
         $table = $this->wrapTable($query->from);
 
-        $alias = last(preg_split('/\s+as\s+/i', $query->from));
+        $alias = asdb_last(preg_split('/\s+as\s+/i', $query->from));
 
         $selectSql = $this->compileSelect($query->select($alias.'.rowid'));
 

@@ -2,8 +2,10 @@
 
 namespace As247\WpEloquent\Support;
 
+use As247\WpEloquent\Doctrine\Inflector\CachedWordInflector;
 use As247\WpEloquent\Doctrine\Inflector\Inflector;
-use As247\WpEloquent\Doctrine\Inflector\InflectorFactory;
+use As247\WpEloquent\Doctrine\Inflector\Rules\English;
+use As247\WpEloquent\Doctrine\Inflector\RulesetInflector;
 
 class Pluralizer
 {
@@ -122,14 +124,22 @@ class Pluralizer
 
     /**
      * Get the inflector instance.
-     * @return Inflector
+     *
+     * @return \As247\WpEloquent\Doctrine\Inflector\Inflector
      */
     public static function inflector()
     {
         static $inflector;
 
         if (is_null($inflector)) {
-            $inflector = InflectorFactory::create()->build();
+            $inflector = new Inflector(
+                new CachedWordInflector(new RulesetInflector(
+                    English\Rules::getSingularRuleset()
+                )),
+                new CachedWordInflector(new RulesetInflector(
+                    English\Rules::getPluralRuleset()
+                ))
+            );
         }
 
         return $inflector;

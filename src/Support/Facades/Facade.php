@@ -1,7 +1,7 @@
 <?php
 
 namespace As247\WpEloquent\Support\Facades;
-use As247\WpEloquent\Contracts\Container\Container as ContainerContract;
+
 use Closure;
 use Mockery;
 use Mockery\MockInterface;
@@ -12,7 +12,7 @@ abstract class Facade
     /**
      * The application instance being facaded.
      *
-     * @var ContainerContract
+     * @var \As247\WpEloquent\Contracts\Foundation\Application
      */
     protected static $app;
 
@@ -31,7 +31,13 @@ abstract class Facade
      */
     public static function resolved(Closure $callback)
     {
-        static::$app->afterResolving(static::getFacadeAccessor(), function ($service) use ($callback) {
+        $accessor = static::getFacadeAccessor();
+
+        if (static::$app->resolved($accessor) === true) {
+            $callback(static::getFacadeRoot());
+        }
+
+        static::$app->afterResolving($accessor, function ($service) use ($callback) {
             $callback($service);
         });
     }
@@ -46,10 +52,26 @@ abstract class Facade
         if (! static::isMock()) {
             $class = static::getMockableClass();
 
-            return tap($class ? Mockery::spy($class) : Mockery::spy(), function ($spy) {
+            return asdb_tap($class ? Mockery::spy($class) : Mockery::spy(), function ($spy) {
                 static::swap($spy);
             });
         }
+    }
+
+    /**
+     * Initiate a partial mock on the facade.
+     *
+     * @return \Mockery\MockInterface
+     */
+    public static function partialMock()
+    {
+        $name = static::getFacadeAccessor();
+
+        $mock = static::isMock()
+            ? static::$resolvedInstance[$name]
+            : static::createFreshMockInstance();
+
+        return $mock->makePartial();
     }
 
     /**
@@ -75,7 +97,7 @@ abstract class Facade
      */
     protected static function createFreshMockInstance()
     {
-        return tap(static::createMock(), function ($mock) {
+        return asdb_tap(static::createMock(), function ($mock) {
             static::swap($mock);
 
             $mock->shouldAllowMockingProtectedMethods();
@@ -201,7 +223,7 @@ abstract class Facade
     /**
      * Get the application instance behind the facade.
      *
-     * @return ContainerContract
+     * @return \As247\WpEloquent\Contracts\Foundation\Application
      */
     public static function getFacadeApplication()
     {
@@ -211,7 +233,7 @@ abstract class Facade
     /**
      * Set the application instance.
      *
-     * @param  ContainerContract  $app
+     * @param  \As247\WpEloquent\Contracts\Container\Container  $app
      * @return void
      */
     public static function setFacadeApplication($app)
@@ -223,7 +245,7 @@ abstract class Facade
      * Handle dynamic, static calls to the object.
      *
      * @param  string  $method
-     * @param  array   $args
+     * @param  array  $args
      * @return mixed
      *
      * @throws \RuntimeException

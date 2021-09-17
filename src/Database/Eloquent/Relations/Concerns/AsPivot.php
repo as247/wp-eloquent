@@ -33,9 +33,9 @@ trait AsPivot
      * Create a new pivot model instance.
      *
      * @param  \As247\WpEloquent\Database\Eloquent\Model  $parent
-     * @param  array   $attributes
+     * @param  array  $attributes
      * @param  string  $table
-     * @param  bool    $exists
+     * @param  bool  $exists
      * @return static
      */
     public static function fromAttributes(Model $parent, $attributes, $table, $exists = false)
@@ -66,9 +66,9 @@ trait AsPivot
      * Create a new pivot model from raw values returned from a query.
      *
      * @param  \As247\WpEloquent\Database\Eloquent\Model  $parent
-     * @param  array   $attributes
+     * @param  array  $attributes
      * @param  string  $table
-     * @param  bool    $exists
+     * @param  bool  $exists
      * @return static
      */
     public static function fromRawAttributes(Model $parent, $attributes, $table, $exists = false)
@@ -77,7 +77,7 @@ trait AsPivot
 
         $instance->timestamps = $instance->hasTimestampAttributes($attributes);
 
-        $instance->setRawAttributes($attributes, true);
+        $instance->setRawAttributes($attributes, $exists);
 
         return $instance;
     }
@@ -88,7 +88,7 @@ trait AsPivot
      * @param  \As247\WpEloquent\Database\Eloquent\Builder  $query
      * @return \As247\WpEloquent\Database\Eloquent\Builder
      */
-    protected function setKeysForSaveQuery(Builder $query)
+    protected function setKeysForSaveQuery($query)
     {
         if (isset($this->attributes[$this->getKeyName()])) {
             return parent::setKeysForSaveQuery($query);
@@ -120,7 +120,9 @@ trait AsPivot
 
         $this->touchOwners();
 
-        return wpe_tap($this->getDeleteQuery()->delete(), function () {
+        return asdb_tap($this->getDeleteQuery()->delete(), function () {
+            $this->exists = false;
+
             $this->fireModelEvent('deleted', false);
         });
     }
@@ -147,7 +149,7 @@ trait AsPivot
     {
         if (! isset($this->table)) {
             $this->setTable(str_replace(
-                '\\', '', Str::snake(Str::singular(wpe_class_basename($this)))
+                '\\', '', Str::snake(Str::singular(asdb_class_basename($this)))
             ));
         }
 
@@ -300,5 +302,18 @@ trait AsPivot
         }
 
         return $query;
+    }
+
+    /**
+     * Unset all the loaded relations for the instance.
+     *
+     * @return $this
+     */
+    public function unsetRelations()
+    {
+        $this->pivotParent = null;
+        $this->relations = [];
+
+        return $this;
     }
 }

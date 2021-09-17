@@ -2,7 +2,6 @@
 
 namespace As247\WpEloquent\Database\Eloquent\Relations;
 
-use As247\WpEloquent\Database\Eloquent\Builder;
 use As247\WpEloquent\Support\Str;
 
 class MorphPivot extends Pivot
@@ -31,7 +30,7 @@ class MorphPivot extends Pivot
      * @param  \As247\WpEloquent\Database\Eloquent\Builder  $query
      * @return \As247\WpEloquent\Database\Eloquent\Builder
      */
-    protected function setKeysForSaveQuery(Builder $query)
+    protected function setKeysForSaveQuery($query)
     {
         $query->where($this->morphType, $this->morphClass);
 
@@ -45,6 +44,10 @@ class MorphPivot extends Pivot
      */
     public function delete()
     {
+        if (isset($this->attributes[$this->getKeyName()])) {
+            return (int) parent::delete();
+        }
+
         if ($this->fireModelEvent('deleting') === false) {
             return 0;
         }
@@ -53,7 +56,7 @@ class MorphPivot extends Pivot
 
         $query->where($this->morphType, $this->morphClass);
 
-        return wpe_tap($query->delete(), function () {
+        return asdb_tap($query->delete(), function () {
             $this->fireModelEvent('deleted', false);
         });
     }

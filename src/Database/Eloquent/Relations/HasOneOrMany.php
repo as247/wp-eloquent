@@ -54,9 +54,26 @@ abstract class HasOneOrMany extends Relation
      */
     public function make(array $attributes = [])
     {
-        return wpe_tap($this->related->newInstance($attributes), function ($instance) {
+        return asdb_tap($this->related->newInstance($attributes), function ($instance) {
             $this->setForeignAttributesForCreate($instance);
         });
+    }
+
+    /**
+     * Create and return an un-saved instances of the related models.
+     *
+     * @param  iterable  $records
+     * @return \As247\WpEloquent\Database\Eloquent\Collection
+     */
+    public function makeMany($records)
+    {
+        $instances = $this->related->newCollection();
+
+        foreach ($records as $record) {
+            $instances->push($this->make($record));
+        }
+
+        return $instances;
     }
 
     /**
@@ -91,7 +108,7 @@ abstract class HasOneOrMany extends Relation
     /**
      * Match the eagerly loaded results to their single parents.
      *
-     * @param  array   $models
+     * @param  array  $models
      * @param  \As247\WpEloquent\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
@@ -104,7 +121,7 @@ abstract class HasOneOrMany extends Relation
     /**
      * Match the eagerly loaded results to their many parents.
      *
-     * @param  array   $models
+     * @param  array  $models
      * @param  \As247\WpEloquent\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @return array
@@ -117,7 +134,7 @@ abstract class HasOneOrMany extends Relation
     /**
      * Match the eagerly loaded results to their many parents.
      *
-     * @param  array   $models
+     * @param  array  $models
      * @param  \As247\WpEloquent\Database\Eloquent\Collection  $results
      * @param  string  $relation
      * @param  string  $type
@@ -144,7 +161,7 @@ abstract class HasOneOrMany extends Relation
     /**
      * Get the value of a relationship by one or many type.
      *
-     * @param  array   $dictionary
+     * @param  array  $dictionary
      * @param  string  $key
      * @param  string  $type
      * @return mixed
@@ -196,7 +213,7 @@ abstract class HasOneOrMany extends Relation
      * @param  array  $values
      * @return \As247\WpEloquent\Database\Eloquent\Model
      */
-    public function firstOrNew(array $attributes, array $values = [])
+    public function firstOrNew(array $attributes = [], array $values = [])
     {
         if (is_null($instance = $this->where($attributes)->first())) {
             $instance = $this->related->newInstance($attributes + $values);
@@ -214,7 +231,7 @@ abstract class HasOneOrMany extends Relation
      * @param  array  $values
      * @return \As247\WpEloquent\Database\Eloquent\Model
      */
-    public function firstOrCreate(array $attributes, array $values = [])
+    public function firstOrCreate(array $attributes = [], array $values = [])
     {
         if (is_null($instance = $this->where($attributes)->first())) {
             $instance = $this->create($attributes + $values);
@@ -232,7 +249,7 @@ abstract class HasOneOrMany extends Relation
      */
     public function updateOrCreate(array $attributes, array $values = [])
     {
-        return wpe_tap($this->firstOrNew($attributes), function ($instance) use ($values) {
+        return asdb_tap($this->firstOrNew($attributes), function ($instance) use ($values) {
             $instance->fill($values);
 
             $instance->save();
@@ -275,7 +292,7 @@ abstract class HasOneOrMany extends Relation
      */
     public function create(array $attributes = [])
     {
-        return wpe_tap($this->related->newInstance($attributes), function ($instance) {
+        return asdb_tap($this->related->newInstance($attributes), function ($instance) {
             $this->setForeignAttributesForCreate($instance);
 
             $instance->save();

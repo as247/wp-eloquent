@@ -16,7 +16,7 @@ class MySqlGrammar extends Grammar
      */
     protected $modifiers = [
         'Unsigned', 'Charset', 'Collate', 'VirtualAs', 'StoredAs', 'Nullable',
-        'Default', 'Increment', 'Comment', 'After', 'First', 'Srid',
+        'Srid', 'Default', 'Increment', 'Comment', 'After', 'First',
     ];
 
     /**
@@ -52,7 +52,7 @@ class MySqlGrammar extends Grammar
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
      * @param  \As247\WpEloquent\Support\Fluent  $command
      * @param  \As247\WpEloquent\Database\Connection  $connection
-     * @return string
+     * @return array
      */
     public function compileCreate(Blueprint $blueprint, Fluent $command, Connection $connection)
     {
@@ -70,9 +70,9 @@ class MySqlGrammar extends Grammar
         // Finally, we will append the engine configuration onto this SQL statement as
         // the final thing we do before returning this finished SQL. Once this gets
         // added the query will be ready to execute against the real connections.
-        return $this->compileCreateEngine(
+        return array_values(array_filter(array_merge([$this->compileCreateEngine(
             $sql, $connection, $blueprint
-        );
+        )], $this->compileAutoIncrementStartingValues($blueprint))));
     }
 
     /**
@@ -81,15 +81,15 @@ class MySqlGrammar extends Grammar
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
      * @param  \As247\WpEloquent\Support\Fluent  $command
      * @param  \As247\WpEloquent\Database\Connection  $connection
-     * @return string
+     * @return array
      */
     protected function compileCreateTable($blueprint, $command, $connection)
     {
-        return sprintf('%s table %s (%s)',
+        return trim(sprintf('%s table %s (%s)',
             $blueprint->temporary ? 'create temporary' : 'create',
             $this->wrapTable($blueprint),
             implode(', ', $this->getColumns($blueprint))
-        );
+        ));
     }
 
     /**
@@ -147,13 +147,29 @@ class MySqlGrammar extends Grammar
      *
      * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
      * @param  \As247\WpEloquent\Support\Fluent  $command
-     * @return string
+     * @return array
      */
     public function compileAdd(Blueprint $blueprint, Fluent $command)
     {
         $columns = $this->prefixArray('add', $this->getColumns($blueprint));
 
-        return 'alter table '.$this->wrapTable($blueprint).' '.implode(', ', $columns);
+        return array_values(array_merge(
+            ['alter table '.$this->wrapTable($blueprint).' '.implode(', ', $columns)],
+            $this->compileAutoIncrementStartingValues($blueprint)
+        ));
+    }
+
+    /**
+     * Compile the auto incrementing column starting values.
+     *
+     * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
+     * @return array
+     */
+    public function compileAutoIncrementStartingValues(Blueprint $blueprint)
+    {
+        return asdb_collect($blueprint->autoIncrementingStartingValues())->map(function ($value, $column) use ($blueprint) {
+            return 'alter table '.$this->wrapTable($blueprint->getTable()).' auto_increment = '.$value;
+        })->all();
     }
 
     /**
@@ -346,8 +362,8 @@ class MySqlGrammar extends Grammar
     /**
      * Compile a rename index command.
      *
-     * @param  \As247\WpEloquent\Database\Schema\Blueprint $blueprint
-     * @param  \As247\WpEloquent\Support\Fluent $command
+     * @param  \As247\WpEloquent\Database\Schema\Blueprint  $blueprint
+     * @param  \As247\WpEloquent\Support\Fluent  $command
      * @return string
      */
     public function compileRenameIndex(Blueprint $blueprint, Fluent $command)
@@ -690,7 +706,9 @@ class MySqlGrammar extends Grammar
     {
         $columnType = $column->precision ? "timestamp($column->precision)" : 'timestamp';
 
-        return $column->useCurrent ? "$columnType default CURRENT_TIMESTAMP" : $columnType;
+        $defaultCurrent = $column->precision ? "CURRENT_TIMESTAMP($column->precision)" : 'CURRENT_TIMESTAMP';
+
+        return $column->useCurrent ? "$columnType default $defaultCurrent" : $columnType;
     }
 
     /**
@@ -941,6 +959,10 @@ class MySqlGrammar extends Grammar
     {
         if (is_null($column->virtualAs) && is_null($column->storedAs)) {
             return $column->nullable ? ' null' : ' not null';
+        }
+
+        if ($column->nullable === false) {
+            return ' not null';
         }
     }
 
