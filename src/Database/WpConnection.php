@@ -197,7 +197,7 @@ class WpConnection extends MySqlConnection
             // Micro-optimization: check for scalar values before instances
             if (is_bool($value)) {
                 $bindings[$key] = intval($value);
-            } elseif (is_scalar($value)) {
+            } elseif (is_scalar($value) || is_null($value)) {//null is not scalar but expected to keep
                 continue;
             } elseif ($value instanceof DateTime) {
                 // We need to transform all instances of the DateTime class into an actual
