@@ -69,7 +69,7 @@ class User extends As247\WpEloquent\Database\Eloquent\Model {}
 $users = User::where('votes', '>', 1)->get();
 ```
 
-For further documentation on using the various database facilities this library provides, consult the [Laravel framework documentation](https://laravel.com/docs).
+For further documentation on using the various database facilities this library provides, consult the [Laravel framework documentation](https://laravel.com/docs/8.x/eloquent).
 
 ## Version 1.0
 You are looking for v1.x? Check it here
