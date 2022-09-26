@@ -7,6 +7,9 @@ namespace As247\WpEloquent\Database;
 use PDO;
 use PDOException;
 
+/**
+ *
+ */
 class WpPdo extends PDO
 {
     /**
@@ -53,7 +56,7 @@ class WpPdo extends PDO
             throw new PDOException("Failed to start transaction. Transaction is already started.");
         }
         $this->in_transaction=true;
-        return $this->db->unprepared('START TRANSACTION');
+        return $this->db->query('START TRANSACTION');
     }
 
     /**
@@ -68,7 +71,7 @@ class WpPdo extends PDO
             throw new PDOException("There is no active transaction to commit");
         }
         $this->in_transaction=false;
-        return $this->db->unprepared('COMMIT');
+        return $this->db->query('COMMIT');
     }
 
     /**
@@ -83,7 +86,7 @@ class WpPdo extends PDO
             throw new PDOException("There is no active transaction to rollback");
         }
         $this->in_transaction=false;
-        return $this->db->unprepared('ROLLBACK');
+        return $this->db->query('ROLLBACK');
     }
 
     /**
@@ -126,7 +129,37 @@ class WpPdo extends PDO
      * </code>
      */
     public function exec ($statement) {
-        return $this->db->unprepared($statement);
+        return $this->db->query($statement);
+    }
+    /**
+     * (PHP 5 &gt;= 5.1.0, PHP 7, PECL pdo &gt;= 0.2.0)<br/>
+     * Executes an SQL statement, returning a result set as a PDOStatement object
+     * @link https://php.net/manual/en/pdo.query.php
+     * @param string $statement <p>
+     * The SQL statement to prepare and execute.
+     * </p>
+     * <p>
+     * Data inside the query should be properly escaped.
+     * </p>
+     * @param int $mode <p>
+     * The fetch mode must be one of the PDO::FETCH_* constants.
+     * </p>
+     * @param mixed $arg3 <p>
+     * The second and following parameters are the same as the parameters for PDOStatement::setFetchMode.
+     * </p>
+     * @param array $ctorargs [optional] <p>
+     * Arguments of custom class constructor when the <i>mode</i>
+     * parameter is set to <b>PDO::FETCH_CLASS</b>.
+     * </p>
+     * @return \PDOStatement|false <b>PDO::query</b> returns a PDOStatement object, or <b>FALSE</b>
+     * on failure.
+     * @see PDOStatement::setFetchMode For a full description of the second and following parameters.
+     */
+    function query($statement, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, $arg3 = null, array $ctorargs = [])
+    {
+        $statement=$this->prepare($statement);
+        $statement->execute();
+        return $statement;
     }
 
     /**

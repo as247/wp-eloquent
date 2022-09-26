@@ -109,7 +109,7 @@ class WpConnection extends MySqlConnection
                 return 1;
             }
             $error=$this->getPdo()->suppress_errors();
-            $result = $this->getPdo()->query($query);
+            $result = $this->getPdo()->exec($query);
             $this->getPdo()->suppress_errors($error);
             if($this->getPdo()->last_error){
                 throw new QueryException($query, [], new Exception($this->getPdo()->last_error));
@@ -179,5 +179,13 @@ class WpConnection extends MySqlConnection
             }
         }
         return $bindings;
+    }
+
+    /**
+     * @return WpPdo|\Closure|\PDO
+     */
+    function getPdo()
+    {
+        return parent::getPdo();
     }
 }
