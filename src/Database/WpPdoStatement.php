@@ -2,7 +2,7 @@
 
 namespace As247\WpEloquent\Database;
 
-class WpPdoStatement extends \PDOStatement
+class WpPdoStatement
 {
     public $queryString;
     protected $pdo;

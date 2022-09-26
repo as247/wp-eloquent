@@ -155,7 +155,7 @@ class WpPdo extends PDO
      * on failure.
      * @see PDOStatement::setFetchMode For a full description of the second and following parameters.
      */
-    function query($statement, $mode = PDO::ATTR_DEFAULT_FETCH_MODE, $arg3 = null, array $ctorargs = [])
+    function query($statement)
     {
         $statement=$this->prepare($statement);
         $statement->execute();
