@@ -20,30 +20,27 @@ class Application
 	}
 	protected function setupWp($useWpConnection=true){
 		if($useWpConnection) {
-			$this->manager->addConnection([], 'wp');
-			$this->manager->getDatabaseManager()->extend('wp', function () {
-				return WpConnection::instance();
-			});
-			$this->manager->getDatabaseManager()->setDefaultConnection('wp');
+			$driver='wp';
 		}else{
-			global $wpdb;
-			$dbuser     = defined( 'DB_USER' ) ? DB_USER : '';
-			$dbpassword = defined( 'DB_PASSWORD' ) ? DB_PASSWORD : '';
-			$dbname     = defined( 'DB_NAME' ) ? DB_NAME : '';
-			$dbhost     = defined( 'DB_HOST' ) ? DB_HOST : '';
-			$charset=$wpdb->charset;
-			$collate=$wpdb->collate;
-			$this->setupConnection([
-				'driver'    => 'mysql',
-				'host'      => $dbhost,
-				'database'  => $dbname,
-				'username'  => $dbuser,
-				'password'  => $dbpassword,
-				'charset'   => $charset,
-				'collation' => $collate,
-				'prefix'    => $wpdb->base_prefix,
-			]);
+            $driver='mysql';
 		}
+        global $wpdb;
+        $dbuser     = defined( 'DB_USER' ) ? DB_USER : '';
+        $dbpassword = defined( 'DB_PASSWORD' ) ? DB_PASSWORD : '';
+        $dbname     = defined( 'DB_NAME' ) ? DB_NAME : '';
+        $dbhost     = defined( 'DB_HOST' ) ? DB_HOST : '';
+        $charset=$wpdb->charset;
+        $collate=$wpdb->collate;
+        $this->setupConnection([
+            'driver'    => $driver,
+            'host'      => $dbhost,
+            'database'  => $dbname,
+            'username'  => $dbuser,
+            'password'  => $dbpassword,
+            'charset'   => $charset,
+            'collation' => $collate,
+            'prefix'    => $wpdb->base_prefix,
+        ]);
 	}
 	protected function setupConnection($connection=[]){
 		$this->manager->addConnection($connection);

@@ -8,6 +8,7 @@ use As247\WpEloquent\Database\MySqlConnection;
 use As247\WpEloquent\Database\PostgresConnection;
 use As247\WpEloquent\Database\SQLiteConnection;
 use As247\WpEloquent\Database\SqlServerConnection;
+use As247\WpEloquent\Database\WpConnection;
 use As247\WpEloquent\Support\Arr;
 use InvalidArgumentException;
 use PDOException;
@@ -250,6 +251,8 @@ class ConnectionFactory
                 return new SQLiteConnector;
             case 'sqlsrv':
                 return new SqlServerConnector;
+            case 'wp':
+                return new WpConnector;
         }
 
         throw new InvalidArgumentException("Unsupported driver [{$config['driver']}].");
@@ -282,6 +285,8 @@ class ConnectionFactory
                 return new SQLiteConnection($connection, $database, $prefix, $config);
             case 'sqlsrv':
                 return new SqlServerConnection($connection, $database, $prefix, $config);
+            case 'wp':
+                return new WpConnection($connection, $database, $prefix, $config);
         }
 
         throw new InvalidArgumentException("Unsupported driver [{$driver}].");

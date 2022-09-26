@@ -7,53 +7,15 @@ use DateTime;
 use Exception;
 use JsonSerializable;
 use Serializable;
-use wpdb;
 
 class WpConnection extends MySqlConnection
 {
     /**
-     * @var wpdb
-     */
-    public $db;
-    /**
-     * The database connection configuration options.
+     * The active PDO connection.
      *
-     * @var array
+     * @var WpPdo
      */
-    protected $config = [];
-    /**
-     * Initializes the Database class
-     *
-     * @return static
-     */
-    public static function instance()
-    {
-        static $instance = false;
-        global $wpdb;
-        if (!$instance) {
-            $dbName=DB_NAME;
-            if(isset($wpdb->dbname)){
-                $dbName=$wpdb->dbname;
-            }
-            $instance = new self($wpdb,$dbName,$wpdb->prefix);
-        }
-        return $instance;
-    }
-
-    public function __construct($wpdb, $database = '', $tablePrefix = '', array $config = [])
-    {
-        $this->db = $wpdb;
-        $pdo=new WpPdo($this);
-        parent::__construct($pdo, $database, $tablePrefix, $config);
-    }
-
-    /**
-     * Get wpdb object
-     * @return wpdb
-     */
-    function getWpdb(){
-        return $this->db;
-    }
+    protected $pdo;
 
     /**
      * Run a select statement against the database.
@@ -72,11 +34,11 @@ class WpConnection extends MySqlConnection
                 return [];
             }
             $query = $this->bindParams($query, $bindings);
-            $error=$this->db->suppress_errors();
-            $result = $this->db->get_results($query);
-            $this->db->suppress_errors($error);
-            if ($this->db->last_error)
-                throw new QueryException($query, $bindings, new Exception($this->db->last_error));
+            $error=$this->getPdo()->suppress_errors();
+            $result = $this->getPdo()->get_results($query);
+            $this->getPdo()->suppress_errors($error);
+            if ($this->getPdo()->last_error)
+                throw new QueryException($query, $bindings, new Exception($this->getPdo()->last_error));
             return $result;
         });
 
@@ -146,11 +108,11 @@ class WpConnection extends MySqlConnection
             if ($this->pretending()) {
                 return 1;
             }
-            $error=$this->db->suppress_errors();
-            $result = $this->db->query($query);
-            $this->db->suppress_errors($error);
-            if($this->db->last_error){
-                throw new QueryException($query, [], new Exception($this->db->last_error));
+            $error=$this->getPdo()->suppress_errors();
+            $result = $this->getPdo()->query($query);
+            $this->getPdo()->suppress_errors($error);
+            if($this->getPdo()->last_error){
+                throw new QueryException($query, [], new Exception($this->getPdo()->last_error));
             }
             return intval($result);
         });

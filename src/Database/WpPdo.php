@@ -10,7 +10,7 @@ use PDOException;
 class WpPdo extends PDO
 {
     /**
-     * @var WpConnection
+     * @var \wpdb
      */
     protected $db;
     protected $in_transaction;
@@ -154,6 +154,28 @@ class WpPdo extends PDO
      */
     public function lastInsertId($name=null)
     {
-        return $this->db->getWpdb()->insert_id;
+        return $this->db->insert_id;
     }
+    public function __call($name, $arguments)
+    {
+        return $this->db->$name(...$arguments);
+    }
+    public function __get($name)
+    {
+        return $this->db->$name;
+    }
+    public function __isset($name)
+    {
+        return isset($this->db->$name);
+    }
+    public function getWpdb(){
+        return $this->db;
+    }
+    public function prepare($query, $options = null)
+    {
+        $statement=new WpPdoStatement($this);
+        $statement->queryString=$query;
+        return $statement;
+    }
+
 }
