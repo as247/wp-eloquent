@@ -137,20 +137,7 @@ class WpPdo extends PDO
      * @link https://php.net/manual/en/pdo.query.php
      * @param string $statement <p>
      * The SQL statement to prepare and execute.
-     * </p>
-     * <p>
-     * Data inside the query should be properly escaped.
-     * </p>
-     * @param int $mode <p>
-     * The fetch mode must be one of the PDO::FETCH_* constants.
-     * </p>
-     * @param mixed $arg3 <p>
-     * The second and following parameters are the same as the parameters for PDOStatement::setFetchMode.
-     * </p>
-     * @param array $ctorargs [optional] <p>
-     * Arguments of custom class constructor when the <i>mode</i>
-     * parameter is set to <b>PDO::FETCH_CLASS</b>.
-     * </p>
+
      * @return \PDOStatement|false <b>PDO::query</b> returns a PDOStatement object, or <b>FALSE</b>
      * on failure.
      * @see PDOStatement::setFetchMode For a full description of the second and following parameters.
@@ -207,7 +194,7 @@ class WpPdo extends PDO
     public function prepare($query, $options = null)
     {
         $statement=new WpPdoStatement($this);
-        $statement->queryString=$query;
+        $statement->sqlQueryString=$query;
         return $statement;
     }
 

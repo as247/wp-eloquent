@@ -2,9 +2,9 @@
 
 namespace As247\WpEloquent\Database;
 
-class WpPdoStatement
+class WpPdoStatement extends \PDOStatement
 {
-    public $queryString;
+    public $sqlQueryString;
     protected $pdo;
     public function __construct(WpPdo $pdo)
     {
@@ -12,6 +12,6 @@ class WpPdoStatement
     }
     function execute($params = null)
     {
-        $this->pdo->exec($this->queryString);
+        $this->pdo->exec($this->sqlQueryString);
     }
 }
