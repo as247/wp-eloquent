@@ -91,7 +91,7 @@ class WpPdo extends PDO
         $statement->sqlQueryString = $query;
         return $statement;
     }
-
+    #[\ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         return $this->db->insert_id;
