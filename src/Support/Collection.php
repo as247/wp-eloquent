@@ -1296,6 +1296,7 @@ class Collection implements ArrayAccess, Enumerable
      *
      * @return \ArrayIterator
      */
+    #[\ReturnTypeWillChange]
     public function getIterator()
     {
         return new ArrayIterator($this->items);
