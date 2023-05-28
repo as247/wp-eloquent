@@ -19,7 +19,7 @@ class WpPdoStatement extends \PDOStatement
     {
         $this->pdo = $pdo;
     }
-
+    #[\ReturnTypeWillChange]
     function execute($params = null)
     {
         if ($this->executed) {
@@ -36,7 +36,7 @@ class WpPdoStatement extends \PDOStatement
         $this->executed = true;
         return true;
     }
-
+    #[\ReturnTypeWillChange]
     function setFetchMode($mode, $p1 = null, $p2 = null, ...$params8)
     {
         $this->defaultFetchMode = func_get_args();
@@ -89,7 +89,7 @@ class WpPdoStatement extends \PDOStatement
 
         }
     }
-
+    #[\ReturnTypeWillChange]
     function fetch($mode = PDO::FETCH_BOTH, $cursorOrientation = PDO::FETCH_ORI_NEXT, $cursorOffset = 0)
     {
         if (func_num_args() === 0) {
@@ -123,35 +123,35 @@ class WpPdoStatement extends \PDOStatement
         return $this->proccessRowForMode($row, $mode);
 
     }
-
+    #[\ReturnTypeWillChange]
     function fetchAll($mode = null, $map = NULL, $ctor_args = NULL, ...$args8)
     {
         return array_map(function ($row) use ($mode, $map, $ctor_args) {
             return $this->proccessRowForMode($row, $mode, $map, $ctor_args);
         }, $this->result);
     }
-
+    #[\ReturnTypeWillChange]
     function fetchObject($class = "stdClass", $constructorArgs = [])
     {
         return $this->proccessRowForMode($this->fetch(PDO::FETCH_OBJ), PDO::FETCH_CLASS, $class, $constructorArgs);
     }
-
+    #[\ReturnTypeWillChange]
     function fetchColumn($column = 0)
     {
         $row = $this->fetch(PDO::FETCH_NUM);
         return $row[$column] ?? false;
     }
-
+    #[\ReturnTypeWillChange]
     function rowCount()
     {
         return $this->resultCount;
     }
-
+    #[\ReturnTypeWillChange]
     function columnCount()
     {
         return $this->columnCount;
     }
-
+    #[\ReturnTypeWillChange]
     public function closeCursor()
     {
         $this->executed = false;
@@ -159,7 +159,7 @@ class WpPdoStatement extends \PDOStatement
         return true;
     }
 
-
+    #[\ReturnTypeWillChange]
     function bindParam($param, &$var, $type = NULL, $maxLength = NULL, $driverOptions = NULL)
     {
         $this->bindingParams[$param] = [
@@ -167,7 +167,7 @@ class WpPdoStatement extends \PDOStatement
         ];
         return true;
     }
-
+    #[\ReturnTypeWillChange]
     public function bindValue($param, $value, $type = null)
     {
         //Simple param convert
