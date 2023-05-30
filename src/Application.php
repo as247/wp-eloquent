@@ -39,7 +39,7 @@ class Application
             'password'  => $dbpassword,
             'charset'   => $charset,
             'collation' => $collate,
-            'prefix'    => $wpdb->base_prefix,
+            'prefix'    => $wpdb->prefix,
         ]);
 	}
 	protected function setupConnection($connection=[]){
