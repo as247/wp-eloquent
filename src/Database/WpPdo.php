@@ -18,17 +18,14 @@ class WpPdo extends PDO
     protected $db;
     protected $in_transaction;
 
+    protected static $attributeCache=[];
+
     public function __construct($wpdb, $dsn, $username, $password, $options)
     {
-        parent::__construct($dsn, $username, $password, $options);
+        //parent::__construct($dsn, $username, $password, $options);
         $this->db = $wpdb;
     }
 
-    /**
-     * @return bool|int
-     * @throws \Exception
-     *
-     */
     #[\ReturnTypeWillChange]
     public function beginTransaction()
     {
@@ -38,6 +35,7 @@ class WpPdo extends PDO
         $this->in_transaction = true;
         return $this->exec('START TRANSACTION');
     }
+
     #[\ReturnTypeWillChange]
     public function commit()
     {
@@ -47,6 +45,7 @@ class WpPdo extends PDO
         $this->in_transaction = false;
         return $this->exec('COMMIT');
     }
+
     #[\ReturnTypeWillChange]
     public function rollBack()
     {
@@ -56,11 +55,13 @@ class WpPdo extends PDO
         $this->in_transaction = false;
         return $this->exec('ROLLBACK');
     }
+
     #[\ReturnTypeWillChange]
     public function inTransaction()
     {
         return $this->in_transaction;
     }
+
     #[\ReturnTypeWillChange]
     public function exec($statement)
     {
@@ -91,10 +92,49 @@ class WpPdo extends PDO
         $statement->sqlQueryString = $query;
         return $statement;
     }
+
     #[\ReturnTypeWillChange]
     public function lastInsertId($name = null)
     {
         return $this->db->insert_id;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function getAttribute($attribute)
+    {
+        switch ($attribute){
+            case PDO::ATTR_DRIVER_NAME:
+                return 'mysql';
+            case PDO::ATTR_SERVER_VERSION:
+                return $this->getServerVersion();
+        }
+        return null;
+    }
+
+    #[\ReturnTypeWillChange]
+    public function setAttribute($attribute, $value)
+    {
+        static::$attributeCache[$attribute]=$value;
+        return true;
+    }
+
+    protected function getServerVersion( ) {
+        if(!isset(static::$attributeCache['version'])){
+            $version=null;
+            if ( method_exists( $this->db, 'db_server_info' ) ) {
+                $version = $this->db->db_server_info();
+            }
+
+            if ( ! $version ) {
+                $version = $this->db->get_var( 'SELECT VERSION()' );
+            }
+
+            if(!$version){
+                $version='Unknown';
+            }
+            static::$attributeCache['version']=$version;
+        }
+        return static::$attributeCache['version'];
     }
 
     public function __call($name, $arguments)
