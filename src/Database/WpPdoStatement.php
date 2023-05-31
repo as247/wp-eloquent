@@ -9,6 +9,7 @@ class WpPdoStatement extends \PDOStatement
     protected $pdo;
     protected $executed = false;
     protected $result = [];
+    protected $columnTypes = [];
     protected $bindingParams = [];
     protected $cursor = -1;
     protected $resultCount = 0;
@@ -29,13 +30,46 @@ class WpPdoStatement extends \PDOStatement
         $this->cursor = -1;
         $this->resultCount = $this->columnCount = 0;
         $this->pdo->exec($this->bindParamsForQuery($this->sqlQueryString));
-        $this->result = $this->pdo->last_result;
+        $this->result = $this->pdo->getWpdb()->last_result;
         $this->resultCount = count($this->result);
         if (isset($this->result[0])) {
             $this->columnCount = count(get_object_vars($this->result[0]));
         }
+        $this->loadColumnTypes();
         $this->executed = true;
         return true;
+    }
+
+    protected function loadColumnTypes(){
+        if($this->pdo->shouldCastIntAndFloatColumns()){
+            if($this->pdo->getWpdb()->result instanceof \mysqli_result){
+                $columnInfo=$this->pdo->getWpdb()->col_info;
+                foreach ($columnInfo as $column){
+                    $colType=$this->mapColumnTypes($column->type);
+                    if(is_string($colType)) {
+                        $this->columnTypes[$column->name] = $colType;
+                    }
+                }
+            }
+        }
+    }
+    protected function mapColumnTypes($type) {
+        $fieldTypes = [
+            MYSQLI_TYPE_TINY => 'tinyint',
+            MYSQLI_TYPE_SHORT => 'smallint',
+            MYSQLI_TYPE_INT24 => 'mediumint',
+            MYSQLI_TYPE_LONG => 'int',
+            MYSQLI_TYPE_LONGLONG => 'bigint',
+            MYSQLI_TYPE_FLOAT => 'float',
+            MYSQLI_TYPE_DOUBLE => 'double',
+            MYSQLI_TYPE_DECIMAL => 'decimal',
+            //MYSQLI_TYPE_TIMESTAMP => 'timestamp',
+            //MYSQLI_TYPE_DATE => 'date',
+            //MYSQLI_TYPE_DATETIME => 'datetime',
+            //MYSQLI_TYPE_TIME => 'time',
+        ];
+
+        return $fieldTypes[$type] ?? $type;
     }
 
     #[\ReturnTypeWillChange]
@@ -45,8 +79,29 @@ class WpPdoStatement extends \PDOStatement
         return true;
     }
 
+    protected function maybeCastIntFloat($row){
+        foreach ($this->columnTypes as $name=>$type){
+            if(isset($row->$name)){//null will not be cast
+                switch ($type) {
+                    case 'int':
+                    case 'tinyint':
+                    case 'smallint':
+                    case 'mediumint':
+                    case 'bigint':
+                    case 'float':
+                    case 'double':
+                    case 'decimal':
+                        $row->$name = $row->$name + 0;
+                }
+            }
+        }
+        return $row;
+    }
+
     protected function proccessRowForMode($row, $mode, ...$args)
     {
+        $row=$this->maybeCastIntFloat($row);
+
         if(is_null($mode)){
             $mode=$this->defaultFetchMode[0]??null;
         }

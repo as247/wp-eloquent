@@ -16,8 +16,10 @@ class WpPdo extends PDO
      * @var \wpdb
      */
     protected $db;
-    protected $in_transaction;
+    protected $isInTransaction;
+    public $castIntFloat=true;
 
+    protected $intFloatIsCast=false;
     protected static $attributeCache=[];
 
     public function __construct($wpdb, $dsn, $username, $password, $options)
@@ -29,44 +31,46 @@ class WpPdo extends PDO
     #[\ReturnTypeWillChange]
     public function beginTransaction()
     {
-        if ($this->in_transaction) {
+        if ($this->isInTransaction) {
             throw new PDOException("Failed to start transaction. Transaction is already started.");
         }
-        $this->in_transaction = true;
+        $this->isInTransaction = true;
         return $this->exec('START TRANSACTION');
     }
 
     #[\ReturnTypeWillChange]
     public function commit()
     {
-        if (!$this->in_transaction) {
+        if (!$this->isInTransaction) {
             throw new PDOException("There is no active transaction to commit");
         }
-        $this->in_transaction = false;
+        $this->isInTransaction = false;
         return $this->exec('COMMIT');
     }
 
     #[\ReturnTypeWillChange]
     public function rollBack()
     {
-        if (!$this->in_transaction) {
+        if (!$this->isInTransaction) {
             throw new PDOException("There is no active transaction to rollback");
         }
-        $this->in_transaction = false;
+        $this->isInTransaction = false;
         return $this->exec('ROLLBACK');
     }
 
     #[\ReturnTypeWillChange]
     public function inTransaction()
     {
-        return $this->in_transaction;
+        return $this->isInTransaction;
     }
 
     #[\ReturnTypeWillChange]
     public function exec($statement)
     {
         $error = $this->db->suppress_errors();
+        $this->enableAutoConvertIntFloat();
         $result = $this->db->query($statement);
+        $this->disableAutoConvertIntFloat();
         $this->db->suppress_errors($error);
         if ($this->db->last_error) {
             throw new \Exception($this->db->last_error);
@@ -118,6 +122,24 @@ class WpPdo extends PDO
         return true;
     }
 
+    /**
+     * @return
+     */
+    public function shouldCastIntAndFloatColumns(){
+        return $this->castIntFloat //Required to cast
+            && !$this->intFloatIsCast; //Not cast yet
+    }
+    protected function enableAutoConvertIntFloat(){
+        if ($this->castIntFloat && $this->db->use_mysqli) {
+            $this->intFloatIsCast=true;//Flag that already cast via mysqli
+            $this->db->dbh->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, true);
+        }
+    }
+    protected function disableAutoConvertIntFloat(){
+        if($this->castIntFloat && $this->db->use_mysqli){
+            $this->db->dbh->options(MYSQLI_OPT_INT_AND_FLOAT_NATIVE, false);
+        }
+    }
     protected function getServerVersion( ) {
         if(!isset(static::$attributeCache['version'])){
             $version=null;
@@ -156,5 +178,6 @@ class WpPdo extends PDO
     {
         return $this->db;
     }
+
 
 }
