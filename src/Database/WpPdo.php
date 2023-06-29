@@ -122,6 +122,18 @@ class WpPdo extends PDO
         return true;
     }
 
+    #[\ReturnTypeWillChange]
+    public function errorInfo(){
+        if($this->db->use_mysqli){
+            return [$this->db->dbh->sqlstate,$this->db->dbh->errno,$this->db->dbh->error];
+        }
+        return [];
+    }
+
+    #[\ReturnTypeWillChange]
+    public function errorCode(){
+        return $this->errorInfo()[0]??null;
+    }
     /**
      * @return
      */
