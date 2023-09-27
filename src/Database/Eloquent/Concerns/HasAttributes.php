@@ -244,6 +244,10 @@ trait HasAttributes
                 $attributes[$key] = $this->serializeClassCastableAttribute($key, $attributes[$key]);
             }
 
+            if ($this->isEnumCastable($key) && (! ($attributes[$key] ?? null) instanceof Arrayable)) {
+                $attributes[$key] = isset($attributes[$key]) ? $attributes[$key]->value : null;
+            }
+
             if ($attributes[$key] instanceof Arrayable) {
                 $attributes[$key] = $attributes[$key]->toArray();
             }
@@ -554,6 +558,10 @@ trait HasAttributes
                 return $this->asTimestamp($value);
         }
 
+        if ($this->isEnumCastable($key)) {
+            return $this->getEnumCastableAttributeValue($key, $value);
+        }
+
         if ($this->isClassCastable($key)) {
             return $this->getClassCastableAttributeValue($key, $value);
         }
@@ -587,6 +595,28 @@ trait HasAttributes
 
             return $value;
         }
+    }
+
+    /**
+     * Cast the given attribute to an enum.
+     *
+     * @param  string  $key
+     * @param  mixed  $value
+     * @return mixed
+     */
+    protected function getEnumCastableAttributeValue($key, $value)
+    {
+        if (is_null($value)) {
+            return;
+        }
+
+        $castType = $this->getCasts()[$key];
+
+        if ($value instanceof $castType) {
+            return $value;
+        }
+
+        return $castType::from($value);
     }
 
     /**
@@ -666,6 +696,12 @@ trait HasAttributes
         // the connection grammar's date format. We will auto set the values.
         elseif ($value && $this->isDateAttribute($key)) {
             $value = $this->fromDateTime($value);
+        }
+
+        if ($this->isEnumCastable($key)) {
+            $this->setEnumCastableAttribute($key, $value);
+
+            return $this;
         }
 
         if ($this->isClassCastable($key)) {
@@ -775,6 +811,26 @@ trait HasAttributes
             unset($this->classCastCache[$key]);
         } else {
             $this->classCastCache[$key] = $value;
+        }
+    }
+
+    /**
+     * Set the value of an enum castable attribute.
+     *
+     * @param  string  $key
+     * @param  \BackedEnum  $value
+     * @return void
+     */
+    protected function setEnumCastableAttribute($key, $value)
+    {
+        $enumClass = $this->getCasts()[$key];
+
+        if (!isset($value)) {
+            $this->attributes[$key] = null;
+        } elseif ($value instanceof $enumClass) {
+            $this->attributes[$key] = $value->value;
+        } else {
+            $this->attributes[$key] = $enumClass::from($value)->value;
         }
     }
 
@@ -1109,6 +1165,44 @@ trait HasAttributes
     }
 
     /**
+     * Determine if the given key is cast using an enum.
+     *
+     * @param  string  $key
+     * @return bool
+     */
+    protected function isEnumCastable($key)
+    {
+        if (!array_key_exists($key, $this->getCasts())) {
+            return false;
+        }
+
+        $castType = $this->getCasts()[$key];
+
+        if (in_array($castType, static::$primitiveCastTypes)) {
+            return false;
+        }
+
+        if (function_exists('enum_exists') && enum_exists($castType)) {
+            return true;
+        }
+    }
+
+    /**
+     * Determine if the key is deviable using a custom class.
+     *
+     * @param  string  $key
+     * @return bool
+     *
+     * @throws \Illuminate\Database\Eloquent\InvalidCastException
+     */
+    protected function isClassDeviable($key)
+    {
+        return $this->isClassCastable($key) &&
+            method_exists($castType = $this->parseCasterClass($this->getCasts()[$key]), 'increment') &&
+            method_exists($castType, 'decrement');
+    }
+
+    /**
      * Determine if the key is serializable using a custom class.
      *
      * @param  string  $key
@@ -1118,7 +1212,7 @@ trait HasAttributes
      */
     protected function isClassSerializable($key)
     {
-        return $this->isClassCastable($key) &&
+        return !$this->isEnumCastable($key) && $this->isClassCastable($key) &&
                method_exists($this->parseCasterClass($this->getCasts()[$key]), 'serialize');
     }
 
@@ -1134,7 +1228,7 @@ trait HasAttributes
 
         $arguments = [];
 
-        if (is_string($castType) && strpos($castType, ':') !== false) {
+        if (is_string($castType) && str_contains($castType, ':')) {
             $segments = explode(':', $castType, 2);
 
             $castType = $segments[0];
