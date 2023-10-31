@@ -243,6 +243,8 @@ class WpPdoStatement extends \PDOStatement
             $value = intval($value);
         } elseif ($type === PDO::PARAM_BOOL) {
             $value = $value ? 1 : 0;
+        } elseif ($value === null || $type === PDO::PARAM_NULL) {
+            $value = null;
         } else {
             $value = (string)$value;
         }
@@ -275,7 +277,7 @@ class WpPdoStatement extends \PDOStatement
             $driverOptions = $replace[3] ?? null;
             $param = trim($param, ':');
             if ($value === null || $type === PDO::PARAM_NULL) {
-                $value = 'null';
+                $value = 'NULL';
             } else {
                 if ($type === PDO::PARAM_INT) {
                     $value = intval($value);
