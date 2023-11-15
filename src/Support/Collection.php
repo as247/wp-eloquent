@@ -42,6 +42,10 @@ class Collection implements ArrayAccess, Enumerable
         return new static(range($from, $to));
     }
 
+    public function reduce(callable $callback, $initial = null)
+    {
+    }
+
     /**
      * Get all of the items in the collection.
      *
