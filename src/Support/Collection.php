@@ -4,11 +4,18 @@ namespace As247\WpEloquent\Support;
 
 use ArrayAccess;
 use ArrayIterator;
+use As247\WpEloquent\Contracts\Support\CanBeEscapedWhenCastToString;
+use As247\WpEloquent\Support\Arr;
+use As247\WpEloquent\Support\Enumerable;
+use As247\WpEloquent\Support\ItemNotFoundException;
+use As247\WpEloquent\Support\LazyCollection;
+use As247\WpEloquent\Support\MultipleItemsFoundException;
+use As247\WpEloquent\Support\Stringable;
 use As247\WpEloquent\Support\Traits\EnumeratesValues;
 use As247\WpEloquent\Support\Traits\Macroable;
 use stdClass;
 
-class Collection implements ArrayAccess, Enumerable
+class Collection implements ArrayAccess, CanBeEscapedWhenCastToString, Enumerable
 {
     use EnumeratesValues, Macroable;
 
@@ -55,7 +62,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Get a lazy collection for the items in this collection.
      *
-     * @return \WpStarter\Support\LazyCollection
+     * @return \As247\WpEloquent\Support\LazyCollection
      */
     public function lazy()
     {
@@ -331,7 +338,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Get all items except for those with the specified keys.
      *
-     * @param  \WpStarter\Support\Collection|mixed  $keys
+     * @param  \As247\WpEloquent\Support\Collection|mixed  $keys
      * @return static
      */
     public function except($keys)
@@ -421,7 +428,7 @@ class Collection implements ArrayAccess, Enumerable
             return $this->items[$key];
         }
 
-        return ws_value($default);
+        return asdb_value($default);
     }
 
     /**
@@ -437,7 +444,7 @@ class Collection implements ArrayAccess, Enumerable
             return $this->items[$key];
         }
 
-        $this->offsetSet($key, $value = ws_value($value));
+        $this->offsetSet($key, $value = asdb_value($value));
 
         return $value;
     }
@@ -1162,8 +1169,8 @@ class Collection implements ArrayAccess, Enumerable
      * @param  mixed  $value
      * @return mixed
      *
-     * @throws \WpStarter\Support\ItemNotFoundException
-     * @throws \WpStarter\Support\MultipleItemsFoundException
+     * @throws \As247\WpEloquent\Support\ItemNotFoundException
+     * @throws \As247\WpEloquent\Support\MultipleItemsFoundException
      */
     public function sole($key = null, $operator = null, $value = null)
     {
@@ -1192,7 +1199,7 @@ class Collection implements ArrayAccess, Enumerable
      * @param  mixed  $value
      * @return mixed
      *
-     * @throws \WpStarter\Support\ItemNotFoundException
+     * @throws \As247\WpEloquent\Support\ItemNotFoundException
      */
     public function firstOrFail($key = null, $operator = null, $value = null)
     {
@@ -1332,14 +1339,14 @@ class Collection implements ArrayAccess, Enumerable
                 $prop = $comparison[0];
 
                 $ascending = Arr::get($comparison, 1, true) === true ||
-                    Arr::get($comparison, 1, true) === 'asc';
+                             Arr::get($comparison, 1, true) === 'asc';
 
                 $result = 0;
 
                 if (! is_string($prop) && is_callable($prop)) {
                     $result = $prop($a, $b);
                 } else {
-                    $values = [ws_data_get($a, $prop), ws_data_get($b, $prop)];
+                    $values = [asdb_data_get($a, $prop), asdb_data_get($b, $prop)];
 
                     if (! $ascending) {
                         $values = array_reverse($values);
@@ -1609,7 +1616,7 @@ class Collection implements ArrayAccess, Enumerable
     /**
      * Get a base Support collection instance from this collection.
      *
-     * @return \WpStarter\Support\Collection
+     * @return \As247\WpEloquent\Support\Collection
      */
     public function toBase()
     {
@@ -1669,4 +1676,3 @@ class Collection implements ArrayAccess, Enumerable
         unset($this->items[$key]);
     }
 }
-

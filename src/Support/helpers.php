@@ -82,6 +82,28 @@ if (! function_exists('asdb_trait_uses_recursive')) {
     }
 }
 
+if (! function_exists('asdb_e')) {
+    /**
+     * Encode HTML special characters in a string.
+     *
+     * @param  \As247\WpEloquent\Contracts\Support\DeferringDisplayableValue|\As247\WpEloquent\Contracts\Support\Htmlable|string|null  $value
+     * @param  bool  $doubleEncode
+     * @return string
+     */
+    function asdb_e($value, $doubleEncode = true)
+    {
+        if ($value instanceof \As247\WpEloquent\Contracts\Support\DeferringDisplayableValue) {
+            $value = $value->resolveDisplayableValue();
+        }
+
+        if ($value instanceof \As247\WpEloquent\Contracts\Support\Htmlable) {
+            return $value->toHtml();
+        }
+
+        return htmlspecialchars($value ?? '', ENT_QUOTES, 'UTF-8', $doubleEncode);
+    }
+}
+
 if (! function_exists('asdb_with')) {
     /**
      * Return the given value, optionally passed through the given callback.
